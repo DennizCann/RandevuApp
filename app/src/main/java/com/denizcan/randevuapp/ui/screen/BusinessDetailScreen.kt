@@ -7,7 +7,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,79 +28,148 @@ fun BusinessDetailScreen(
     selectedDate: LocalDate,
     onDateSelect: (LocalDate) -> Unit,
     onTimeSelect: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
     onAppointmentRequest: () -> Unit,
     onBackClick: () -> Unit,
     isLoading: Boolean
 ) {
     var selectedTime by remember { mutableStateOf<String?>(null) }
+    var note by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Üst Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .padding(bottom = 80.dp) // Buton için yer ayırma
+                .verticalScroll(rememberScrollState())
         ) {
-            IconButton(onClick = onBackClick) {
-                // Geri butonu ikonu
+            // Üst Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBackClick) {
+                    // Geri butonu ikonu
+                }
+                Text(
+                    text = business.businessName,
+                    style = MaterialTheme.typography.headlineMedium
+                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // İşletme Bilgileri
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Adres: ${business.address}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Telefon: ${business.phone}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Tarih Seçici Başlık
             Text(
-                text = business.businessName,
-                style = MaterialTheme.typography.headlineMedium
+                text = "Tarih Seçin",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
             )
+
+            // Tarih Seçici
+            DateSelectorRow(
+                selectedDate = selectedDate,
+                onDateSelect = onDateSelect
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Saat Seçici Başlık
+            Text(
+                text = "Saat Seçin",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            // Saat Seçici
+            TimeSlotGrid(
+                availableSlots = availableSlots,
+                selectedTime = selectedTime,
+                onTimeSelect = { time ->
+                    selectedTime = time
+                    onTimeSelect(time)
+                }
+            )
+
+            // Not alanı
+            if (selectedTime != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Not Başlık
+                Text(
+                    text = "Randevu Notu",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { 
+                        note = it
+                        onNoteChange(it)
+                    },
+                    placeholder = { Text("İşletmeye iletmek istediğiniz notlar (isteğe bağlı)...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5
+                )
+            }
+
+            // Alt boşluk
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // İşletme Bilgileri
-        Text(
-            text = "Adres: ${business.address}",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Text(
-            text = "Telefon: ${business.phone}",
-            style = MaterialTheme.typography.bodyLarge
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Tarih Seçici
-        DateSelectorRow(
-            selectedDate = selectedDate,
-            onDateSelect = onDateSelect
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Saat Seçici
-        TimeSlotGrid(
-            availableSlots = availableSlots,
-            selectedTime = selectedTime,
-            onTimeSelect = { time ->
-                selectedTime = time
-                onTimeSelect(time)
-            }
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Randevu Talebi Butonu
-        Button(
-            onClick = onAppointmentRequest,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = selectedTime != null && !isLoading
+        // Sabit Randevu Talebi Butonu
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("Randevu Talep Et")
+            Button(
+                onClick = onAppointmentRequest,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                enabled = selectedTime != null && !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Randevu Talep Et")
+                }
             }
         }
     }
@@ -189,18 +260,39 @@ private fun TimeSlotGrid(
     selectedTime: String?,
     onTimeSelect: (String) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
+    val columns = 4
+    
+    // Her satırda 4 öğe olacak şekilde satır sayısını hesapla
+    val rows = (availableSlots.size + columns - 1) / columns
+    
+    // Grid layout'u manuel oluştur
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(availableSlots) { slot ->
-            TimeSlotButton(
-                timeSlot = slot,
-                isSelected = slot == selectedTime,
-                onClick = { onTimeSelect(slot) }
-            )
+        for (rowIndex in 0 until rows) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Her satırda 4 buton veya daha az (son satır için)
+                for (colIndex in 0 until columns) {
+                    val index = rowIndex * columns + colIndex
+                    if (index < availableSlots.size) {
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            TimeSlotButton(
+                                timeSlot = availableSlots[index],
+                                isSelected = availableSlots[index] == selectedTime,
+                                onClick = { onTimeSelect(availableSlots[index]) }
+                            )
+                        }
+                    } else {
+                        // Boş yer tutucusu, satırın düzgün hizalanması için
+                        Box(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }
@@ -214,7 +306,7 @@ private fun TimeSlotButton(
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier
-            .width(80.dp)
+            .fillMaxWidth()
             .height(48.dp),
         shape = RoundedCornerShape(24.dp),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),

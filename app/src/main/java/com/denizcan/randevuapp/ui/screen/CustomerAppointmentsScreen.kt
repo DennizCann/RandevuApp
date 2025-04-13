@@ -17,6 +17,7 @@ import java.util.*
 @Composable
 fun CustomerAppointmentsScreen(
     appointments: List<Appointment>,
+    onCancelAppointment: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
     Column(
@@ -53,7 +54,10 @@ fun CustomerAppointmentsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(appointments) { appointment ->
-                    CustomerAppointmentCard(appointment = appointment)
+                    AppointmentCard(
+                        appointment = appointment,
+                        onCancelAppointment = onCancelAppointment
+                    )
                 }
             }
         }
@@ -62,11 +66,20 @@ fun CustomerAppointmentsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CustomerAppointmentCard(
-    appointment: Appointment
+private fun AppointmentCard(
+    appointment: Appointment,
+    onCancelAppointment: (String) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = when (appointment.status) {
+                AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer
+                AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondaryContainer
+                AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer
+                else -> MaterialTheme.colorScheme.surface
+            }
+        )
     ) {
         Column(
             modifier = Modifier
@@ -107,6 +120,21 @@ private fun CustomerAppointmentCard(
                 color = statusColor,
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            // Sadece CONFIRMED randevular için iptal butonu göster
+            if (appointment.status == AppointmentStatus.CONFIRMED) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = { onCancelAppointment(appointment.id) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Randevuyu İptal Et")
+                }
+            }
         }
     }
 } 

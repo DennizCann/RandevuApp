@@ -4,13 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.denizcan.randevuapp.model.User
 import com.denizcan.randevuapp.model.Appointment
+import com.denizcan.randevuapp.model.AppointmentStatus
 import com.denizcan.randevuapp.service.FirebaseService
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CustomerHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
+    private val auth = FirebaseAuth.getInstance()
     
     private val _uiState = MutableStateFlow<CustomerHomeState>(CustomerHomeState.Loading)
     val uiState = _uiState.asStateFlow()
@@ -58,6 +61,23 @@ class CustomerHomeViewModel : ViewModel() {
                 _appointmentsState.value = AppointmentsState.Success(appointments)
             } catch (e: Exception) {
                 _appointmentsState.value = AppointmentsState.Error(e.message ?: "Randevular yüklenemedi")
+            }
+        }
+    }
+
+    fun cancelAppointment(appointmentId: String) {
+        viewModelScope.launch {
+            try {
+                // Randevuyu tamamen sil
+                firebaseService.deleteAppointment(appointmentId)
+                
+                // Randevu listesini güncelle
+                val currentUser = auth.currentUser
+                if (currentUser != null) {
+                    loadCustomerAppointments(currentUser.uid)
+                }
+            } catch (e: Exception) {
+                _appointmentsState.value = AppointmentsState.Error(e.message ?: "Randevu iptal edilemedi")
             }
         }
     }

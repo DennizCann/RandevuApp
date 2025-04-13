@@ -395,6 +395,9 @@ fun NavGraph(navController: NavHostController) {
                         onTimeSelect = { time ->
                             viewModel.updateSelectedTime(time)
                         },
+                        onNoteChange = { note ->
+                            viewModel.updateNote(note)
+                        },
                         onAppointmentRequest = {
                             currentUser?.let { user ->
                                 viewModel.createAppointment(user.uid)
@@ -449,6 +452,9 @@ fun NavGraph(navController: NavHostController) {
                         },
                         onTimeSlotUnblock = { appointmentId ->
                             viewModel.unblockTimeSlot(appointmentId)
+                        },
+                        onCancelAndBlock = { appointmentId ->
+                            viewModel.cancelAppointment(appointmentId)
                         },
                         onBackClick = {
                             navController.navigateUp()
@@ -512,6 +518,9 @@ fun NavGraph(navController: NavHostController) {
                 is AppointmentsState.Success -> {
                     CustomerAppointmentsScreen(
                         appointments = currentState.appointments,
+                        onCancelAppointment = { appointmentId ->
+                            viewModel.cancelAppointment(appointmentId)
+                        },
                         onBackClick = {
                             navController.navigateUp()
                         }

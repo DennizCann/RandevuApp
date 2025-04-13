@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
@@ -93,9 +94,19 @@ private fun AppointmentRequestCard(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Müşteri: ${appointment.customerId}", // TODO: Müşteri adını göster
+                text = "Müşteri: ${if (appointment.customerName.isNotEmpty()) appointment.customerName else "İsimsiz Müşteri"}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            
+            if (appointment.note.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Not: ${appointment.note}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
 

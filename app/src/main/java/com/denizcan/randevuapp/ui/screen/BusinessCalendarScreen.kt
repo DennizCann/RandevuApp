@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
@@ -25,6 +26,7 @@ fun BusinessCalendarScreen(
     onAppointmentStatusChange: (String, AppointmentStatus) -> Unit,
     onTimeSlotBlock: (String) -> Unit,
     onTimeSlotUnblock: (String) -> Unit,
+    onCancelAndBlock: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
     Column(
@@ -90,7 +92,8 @@ fun BusinessCalendarScreen(
                         appointment = appointment,
                         onBlockSlot = { onTimeSlotBlock(timeSlot) },
                         onStatusChange = { id, status -> onAppointmentStatusChange(id, status) },
-                        onUnblockSlot = { id -> onTimeSlotUnblock(id) }
+                        onUnblockSlot = { id -> onTimeSlotUnblock(id) },
+                        onCancelAndBlock = { id -> onCancelAndBlock(id) }
                     )
                 }
             }
@@ -105,7 +108,8 @@ private fun TimeSlotCard(
     appointment: Appointment?,
     onBlockSlot: () -> Unit,
     onStatusChange: (String, AppointmentStatus) -> Unit,
-    onUnblockSlot: (String) -> Unit = {}
+    onUnblockSlot: (String) -> Unit = {},
+    onCancelAndBlock: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -168,6 +172,17 @@ private fun TimeSlotCard(
                     text = appointment.customerName.ifEmpty { "İsimsiz Müşteri" },
                     style = MaterialTheme.typography.bodyMedium
                 )
+                
+                // Eğer not varsa göster
+                if (appointment.note.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Not: ${appointment.note}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontStyle = FontStyle.Italic
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -196,6 +211,16 @@ private fun TimeSlotCard(
                         )
                     ) {
                         Text("Aç")
+                    }
+                } else if (appointment.status == AppointmentStatus.CONFIRMED) {
+                    // Onaylanmış randevu için İptal Et butonu
+                    Button(
+                        onClick = { onCancelAndBlock(appointment.id) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("İptal Et")
                     }
                 }
             }

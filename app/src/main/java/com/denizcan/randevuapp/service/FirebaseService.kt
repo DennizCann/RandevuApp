@@ -143,9 +143,6 @@ class FirebaseService {
 
     suspend fun getAppointmentsByDate(businessId: String, date: LocalDate): List<Appointment> {
         return try {
-            val startOfDay = date.atStartOfDay()
-            val endOfDay = date.plusDays(1).atStartOfDay()
-
             firestore.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .get()
@@ -155,7 +152,7 @@ class FirebaseService {
                     doc.data?.let { data ->
                         val timestamp = data["dateTime"] as? Timestamp
                         val dateTime = timestamp?.toLocalDateTime()
-
+                        
                         if (dateTime != null && dateTime.toLocalDate() == date) {
                             Appointment(
                                 id = doc.id,
@@ -164,7 +161,8 @@ class FirebaseService {
                                 customerId = data["customerId"] as? String ?: "",
                                 customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
                                 dateTime = dateTime,
-                                status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name)
+                                status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
+                                note = data["note"] as? String ?: ""
                             )
                         } else null
                     }
@@ -205,7 +203,8 @@ class FirebaseService {
                             customerId = data["customerId"] as? String ?: "",
                             customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
                             dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
-                            status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name)
+                            status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
+                            note = data["note"] as? String ?: ""
                         )
                     }
                 }
@@ -218,7 +217,8 @@ class FirebaseService {
     suspend fun createAppointment(
         businessId: String,
         customerId: String,
-        dateTime: LocalDateTime
+        dateTime: LocalDateTime,
+        note: String = ""
     ): String {
         return try {
             // İşletme ve müşteri bilgilerini al
@@ -231,7 +231,8 @@ class FirebaseService {
                 customerId = customerId,
                 customerName = customer?.fullName ?: "İsimsiz Müşteri",
                 dateTime = dateTime,
-                status = AppointmentStatus.PENDING
+                status = AppointmentStatus.PENDING,
+                note = note
             )
             
             firestore.collection("appointments")
@@ -241,7 +242,8 @@ class FirebaseService {
                     "customerId" to appointment.customerId,
                     "customerName" to appointment.customerName,
                     "dateTime" to appointment.dateTime.toTimestamp(),
-                    "status" to appointment.status.name
+                    "status" to appointment.status.name,
+                    "note" to appointment.note
                 ))
                 .await()
                 .id
@@ -267,7 +269,8 @@ class FirebaseService {
                             customerId = data["customerId"] as? String ?: "",
                             customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
                             dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
-                            status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name)
+                            status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
+                            note = data["note"] as? String ?: ""
                         )
                     }
                 }
@@ -316,6 +319,33 @@ class FirebaseService {
                 .await()
         } catch (e: Exception) {
             throw e
+        }
+    }
+
+    suspend fun getAppointmentById(appointmentId: String): Appointment? {
+        return try {
+            val docSnapshot = firestore.collection("appointments")
+                .document(appointmentId)
+                .get()
+                .await()
+            
+            if (docSnapshot.exists()) {
+                val data = docSnapshot.data
+                if (data != null) {
+                    Appointment(
+                        id = appointmentId,
+                        businessId = data["businessId"] as? String ?: "",
+                        businessName = data["businessName"] as? String ?: "",
+                        customerId = data["customerId"] as? String ?: "",
+                        customerName = data["customerName"] as? String ?: "",
+                        dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
+                        status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
+                        note = data["note"] as? String ?: ""
+                    )
+                } else null
+            } else null
+        } catch (e: Exception) {
+            null
         }
     }
 } 

@@ -20,6 +20,7 @@ class BusinessDetailViewModel : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     private var selectedDateTime: LocalDateTime? = null
+    private var appointmentNote: String = ""
 
     sealed class BusinessDetailState {
         object Loading : BusinessDetailState()
@@ -125,6 +126,10 @@ class BusinessDetailViewModel : ViewModel() {
         }
     }
 
+    fun updateNote(note: String) {
+        appointmentNote = note
+    }
+
     fun createAppointment(customerId: String) {
         viewModelScope.launch {
             try {
@@ -133,7 +138,8 @@ class BusinessDetailViewModel : ViewModel() {
                     firebaseService.createAppointment(
                         businessId = currentState.business.id,
                         customerId = customerId,
-                        dateTime = selectedDateTime!!
+                        dateTime = selectedDateTime!!,
+                        note = appointmentNote
                     )
                     // Başarılı mesajı göster veya navigasyon yap
                 }

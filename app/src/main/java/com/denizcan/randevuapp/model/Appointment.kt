@@ -9,5 +9,6 @@ data class Appointment(
     val customerId: String = "",
     val customerName: String = "",
     val dateTime: LocalDateTime = LocalDateTime.now(),
-    val status: AppointmentStatus = AppointmentStatus.PENDING
+    val status: AppointmentStatus = AppointmentStatus.PENDING,
+    val note: String = ""
 ) 

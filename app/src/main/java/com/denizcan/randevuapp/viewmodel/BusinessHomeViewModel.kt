@@ -175,12 +175,18 @@ class BusinessHomeViewModel : ViewModel() {
     fun updateAppointmentStatus(appointmentId: String, status: AppointmentStatus) {
         viewModelScope.launch {
             try {
-                firebaseService.updateAppointmentStatus(appointmentId, status)
+                // Eğer CANCELLED ise randevuyu tamamen sil
+                if (status == AppointmentStatus.CANCELLED) {
+                    firebaseService.deleteAppointment(appointmentId)
+                } else {
+                    // Diğer durumlar için normal güncelleme yap
+                    firebaseService.updateAppointmentStatus(appointmentId, status)
+                }
                 
                 // Hem randevu taleplerini hem de takvimi güncelle
                 val currentRequestsState = _appointmentRequestsState.value
                 if (currentRequestsState is AppointmentRequestsState.Success) {
-                    loadAppointmentRequests(currentRequestsState.appointments.first().businessId)
+                    loadAppointmentRequests(currentRequestsState.appointments.firstOrNull()?.businessId ?: currentBusinessId ?: "")
                 }
 
                 // Takvimi güncelle
@@ -224,6 +230,23 @@ class BusinessHomeViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _calendarState.value = CalendarState.Error(e.message ?: "Zaman dilimi açılamadı")
+            }
+        }
+    }
+
+    fun cancelAppointment(appointmentId: String) {
+        viewModelScope.launch {
+            try {
+                // Randevuyu tamamen sil
+                firebaseService.deleteAppointment(appointmentId)
+                
+                // Takvimi güncelle
+                val currentState = _calendarState.value
+                if (currentState is CalendarState.Success) {
+                    loadAppointments(currentState.selectedDate)
+                }
+            } catch (e: Exception) {
+                _calendarState.value = CalendarState.Error(e.message ?: "Randevu iptal edilemedi")
             }
         }
     }
