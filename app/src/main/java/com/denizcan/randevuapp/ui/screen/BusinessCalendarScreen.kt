@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
 
@@ -19,8 +20,11 @@ import java.util.*
 fun BusinessCalendarScreen(
     selectedDate: LocalDate,
     appointments: List<Appointment>,
+    availableTimeSlots: List<String>,
     onDateSelect: (LocalDate) -> Unit,
     onAppointmentStatusChange: (String, AppointmentStatus) -> Unit,
+    onTimeSlotBlock: (String) -> Unit,
+    onTimeSlotUnblock: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
     Column(
@@ -63,20 +67,31 @@ fun BusinessCalendarScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Randevu Listesi
-        if (appointments.isEmpty()) {
+        // Zaman aralıkları ve randevuların birleştirilmiş listesi
+        if (availableTimeSlots.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Bu tarihte randevu bulunmuyor")
+                Text("Bu tarihte çalışma saati bulunmuyor")
             }
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(appointments) { appointment ->
-                    AppointmentCard(appointment = appointment)
+                items(availableTimeSlots) { timeSlot ->
+                    // Bu zaman diliminde randevu var mı kontrol et
+                    val appointment = appointments.find { 
+                        it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot 
+                    }
+                    
+                    TimeSlotCard(
+                        timeSlot = timeSlot,
+                        appointment = appointment,
+                        onBlockSlot = { onTimeSlotBlock(timeSlot) },
+                        onStatusChange = { id, status -> onAppointmentStatusChange(id, status) },
+                        onUnblockSlot = { id -> onTimeSlotUnblock(id) }
+                    )
                 }
             }
         }
@@ -85,16 +100,23 @@ fun BusinessCalendarScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppointmentCard(
-    appointment: Appointment
+private fun TimeSlotCard(
+    timeSlot: String,
+    appointment: Appointment?,
+    onBlockSlot: () -> Unit,
+    onStatusChange: (String, AppointmentStatus) -> Unit,
+    onUnblockSlot: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when (appointment.status) {
-                AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer
-                AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondaryContainer
-                AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer
+            containerColor = when {
+                appointment == null -> MaterialTheme.colorScheme.surface  // Boş
+                appointment.status == AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer  // Onaylanmış
+                appointment.status == AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondaryContainer  // Bekliyor
+                appointment.status == AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer  // İptal
+                appointment.status == AppointmentStatus.BLOCKED -> MaterialTheme.colorScheme.surfaceVariant  // Kapatılmış
+                else -> MaterialTheme.colorScheme.surface
             }
         )
     ) {
@@ -109,31 +131,74 @@ private fun AppointmentCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = appointment.dateTime.format(DateTimeFormatter.ofPattern("HH:mm")),
+                    text = timeSlot,
                     style = MaterialTheme.typography.titleMedium
                 )
 
+                if (appointment != null) {
+                    Text(
+                        text = when (appointment.status) {
+                            AppointmentStatus.CONFIRMED -> "✓ Onaylandı"
+                            AppointmentStatus.PENDING -> "⏳ Beklemede"
+                            AppointmentStatus.CANCELLED -> "✕ İptal Edildi"
+                            AppointmentStatus.BLOCKED -> "🔒 Kapatıldı"
+                        },
+                        color = when (appointment.status) {
+                            AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primary
+                            AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                            AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                            AppointmentStatus.BLOCKED -> MaterialTheme.colorScheme.outline
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    // Boş zaman dilimi
+                    Text(
+                        text = "✓ Müsait",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            if (appointment != null && appointment.status != AppointmentStatus.BLOCKED) {
+                Spacer(modifier = Modifier.height(4.dp))
+                
                 Text(
-                    text = when (appointment.status) {
-                        AppointmentStatus.CONFIRMED -> "✓ Onaylandı"
-                        AppointmentStatus.PENDING -> "⏳ Beklemede"
-                        AppointmentStatus.CANCELLED -> "✕ İptal Edildi"
-                    },
-                    color = when (appointment.status) {
-                        AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primary
-                        AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondary
-                        AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.error
-                    },
+                    text = appointment.customerName.ifEmpty { "İsimsiz Müşteri" },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = appointment.customerName.ifEmpty { "İsimsiz Müşteri" },
-                style = MaterialTheme.typography.bodyMedium
-            )
+            // İşlemler
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                if (appointment == null) {
+                    // Boş zaman dilimi için Kapat butonu
+                    Button(
+                        onClick = onBlockSlot,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Kapat")
+                    }
+                } else if (appointment.status == AppointmentStatus.BLOCKED) {
+                    // Kapatılmış zaman dilimi için Aç butonu
+                    Button(
+                        onClick = { onUnblockSlot(appointment.id) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Aç")
+                    }
+                }
+            }
         }
     }
 } 

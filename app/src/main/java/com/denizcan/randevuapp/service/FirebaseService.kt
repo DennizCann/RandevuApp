@@ -276,4 +276,46 @@ class FirebaseService {
             emptyList()
         }
     }
+
+    suspend fun createBlockedAppointment(
+        businessId: String,
+        businessName: String, 
+        dateTime: LocalDateTime
+    ): String {
+        return try {
+            val appointment = Appointment(
+                businessId = businessId,
+                businessName = businessName,
+                customerId = "",  // İşletme tarafından kapatıldığı için müşteri yok
+                customerName = "", 
+                dateTime = dateTime,
+                status = AppointmentStatus.BLOCKED
+            )
+            
+            firestore.collection("appointments")
+                .add(mapOf(
+                    "businessId" to appointment.businessId,
+                    "businessName" to appointment.businessName,
+                    "customerId" to appointment.customerId,
+                    "customerName" to appointment.customerName,
+                    "dateTime" to appointment.dateTime.toTimestamp(),
+                    "status" to appointment.status.name
+                ))
+                .await()
+                .id
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    suspend fun deleteAppointment(appointmentId: String) {
+        try {
+            firestore.collection("appointments")
+                .document(appointmentId)
+                .delete()
+                .await()
+        } catch (e: Exception) {
+            throw e
+        }
+    }
 } 

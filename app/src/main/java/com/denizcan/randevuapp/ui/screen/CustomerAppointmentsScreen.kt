@@ -99,6 +99,7 @@ private fun CustomerAppointmentCard(
                 AppointmentStatus.PENDING -> "Onay Bekliyor" to MaterialTheme.colorScheme.tertiary
                 AppointmentStatus.CONFIRMED -> "Onaylandı" to MaterialTheme.colorScheme.primary
                 AppointmentStatus.CANCELLED -> "Reddedildi" to MaterialTheme.colorScheme.error
+                AppointmentStatus.BLOCKED -> "Kapatıldı" to MaterialTheme.colorScheme.outline
             }
             
             Text(

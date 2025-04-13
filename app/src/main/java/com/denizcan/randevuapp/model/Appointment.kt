@@ -10,10 +10,4 @@ data class Appointment(
     val customerName: String = "",
     val dateTime: LocalDateTime = LocalDateTime.now(),
     val status: AppointmentStatus = AppointmentStatus.PENDING
-)
-
-enum class AppointmentStatus {
-    PENDING,
-    CONFIRMED,
-    CANCELLED
-} 
+) 

@@ -437,11 +437,18 @@ fun NavGraph(navController: NavHostController) {
                     BusinessCalendarScreen(
                         selectedDate = currentState.selectedDate,
                         appointments = currentState.appointments,
+                        availableTimeSlots = currentState.availableTimeSlots,
                         onDateSelect = { date ->
                             viewModel.loadAppointments(date)
                         },
                         onAppointmentStatusChange = { id, status ->
                             viewModel.updateAppointmentStatus(id, status)
+                        },
+                        onTimeSlotBlock = { timeSlot ->
+                            viewModel.blockTimeSlot(currentState.selectedDate, timeSlot)
+                        },
+                        onTimeSlotUnblock = { appointmentId ->
+                            viewModel.unblockTimeSlot(appointmentId)
                         },
                         onBackClick = {
                             navController.navigateUp()

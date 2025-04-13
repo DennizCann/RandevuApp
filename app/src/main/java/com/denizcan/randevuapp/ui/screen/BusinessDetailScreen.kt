@@ -7,10 +7,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.User
 import org.threeten.bp.LocalDate
@@ -212,8 +214,10 @@ private fun TimeSlotButton(
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier
-            .fillMaxWidth()
+            .width(80.dp)
             .height(48.dp),
+        shape = RoundedCornerShape(24.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isSelected) 
                 MaterialTheme.colorScheme.primary 
@@ -233,7 +237,10 @@ private fun TimeSlotButton(
             color = if (isSelected) 
                 MaterialTheme.colorScheme.onPrimary 
             else 
-                MaterialTheme.colorScheme.onSurface
+                MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 } 

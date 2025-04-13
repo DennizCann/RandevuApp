@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
+import org.threeten.bp.format.DateTimeFormatter
 
 class BusinessHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -36,6 +38,7 @@ class BusinessHomeViewModel : ViewModel() {
         object Loading : CalendarState()
         data class Success(
             val appointments: List<Appointment>,
+            val availableTimeSlots: List<String>,
             val selectedDate: LocalDate = LocalDate.now()
         ) : CalendarState()
         data class Error(val message: String) : CalendarState()
@@ -93,14 +96,78 @@ class BusinessHomeViewModel : ViewModel() {
             try {
                 currentBusinessId?.let { businessId ->
                     _calendarState.value = CalendarState.Loading
+                    
+                    // İşletme bilgilerini al
+                    val business = firebaseService.getBusinessById(businessId)
+                    
+                    // Tüm randevuları getir
                     val appointments = firebaseService.getAppointmentsByDate(businessId, date)
+                    
+                    // İşletmenin çalışma saatlerine göre tüm zaman aralıklarını oluştur
+                    val availableTimeSlots = if (business != null) {
+                        calculateTimeSlots(business, date)
+                    } else {
+                        emptyList()
+                    }
+                    
                     _calendarState.value = CalendarState.Success(
                         appointments = appointments,
+                        availableTimeSlots = availableTimeSlots,
                         selectedDate = date
                     )
                 }
             } catch (e: Exception) {
                 _calendarState.value = CalendarState.Error(e.message ?: "Randevular yüklenemedi")
+            }
+        }
+    }
+
+    private fun calculateTimeSlots(business: User.Business, date: LocalDate): List<String> {
+        // İşletmenin o gün çalışıp çalışmadığını kontrol et
+        if (!business.workingDays.contains(date.dayOfWeek.name)) {
+            return emptyList()
+        }
+        
+        val workingHours = business.workingHours
+        val startTime = LocalTime.parse(workingHours.startTime)
+        val endTime = LocalTime.parse(workingHours.endTime)
+        val slotDuration = workingHours.slotDuration
+        
+        // Tüm zaman dilimlerini oluştur
+        val timeSlots = mutableListOf<String>()
+        var currentTime = startTime
+        
+        while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
+            timeSlots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
+            currentTime = currentTime.plusMinutes(slotDuration.toLong())
+        }
+        
+        return timeSlots
+    }
+
+    fun blockTimeSlot(date: LocalDate, timeSlot: String) {
+        viewModelScope.launch {
+            try {
+                currentBusinessId?.let { businessId ->
+                    // Zaman dilimini "HH:mm" formatından LocalDateTime'a çevir
+                    val timeParts = timeSlot.split(":")
+                    val dateTime = date.atTime(timeParts[0].toInt(), timeParts[1].toInt())
+                    
+                    // İşletme adını al
+                    val business = firebaseService.getBusinessById(businessId)
+                    
+                    // Zaman dilimini kapat (BLOCKED olarak işaretle)
+                    firebaseService.createBlockedAppointment(
+                        businessId = businessId,
+                        businessName = business?.businessName ?: "Bilinmeyen İşletme",
+                        dateTime = dateTime
+                    )
+                    
+                    // Takvimi güncelle
+                    loadAppointments(date)
+                }
+            } catch (e: Exception) {
+                _calendarState.value = CalendarState.Error(e.message ?: "Zaman dilimi kapatılamadı")
             }
         }
     }
@@ -140,6 +207,23 @@ class BusinessHomeViewModel : ViewModel() {
                 _appointmentRequestsState.value = AppointmentRequestsState.Success(appointments)
             } catch (e: Exception) {
                 _appointmentRequestsState.value = AppointmentRequestsState.Error(e.message ?: "Randevu talepleri yüklenemedi")
+            }
+        }
+    }
+
+    fun unblockTimeSlot(appointmentId: String) {
+        viewModelScope.launch {
+            try {
+                // Kapatılmış zaman dilimini tamamen sil
+                firebaseService.deleteAppointment(appointmentId)
+                
+                // Takvimi güncelle
+                val currentState = _calendarState.value
+                if (currentState is CalendarState.Success) {
+                    loadAppointments(currentState.selectedDate)
+                }
+            } catch (e: Exception) {
+                _calendarState.value = CalendarState.Error(e.message ?: "Zaman dilimi açılamadı")
             }
         }
     }
