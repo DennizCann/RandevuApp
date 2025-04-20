@@ -64,8 +64,8 @@ class BusinessDetailViewModel : ViewModel() {
         }
 
         val workingHours = business.workingHours
-        val startTime = LocalTime.parse(workingHours.startTime)
-        val endTime = LocalTime.parse(workingHours.endTime)
+        val startTime = LocalTime.parse(workingHours.opening)
+        val endTime = LocalTime.parse(workingHours.closing)
         val slotDuration = workingHours.slotDuration
 
         // Tüm zaman dilimlerini oluştur
@@ -146,6 +146,27 @@ class BusinessDetailViewModel : ViewModel() {
             } catch (e: Exception) {
                 // Hata mesajı göster
             }
+        }
+    }
+
+    private fun generateAvailableTimes(date: LocalDate, opening: String, closing: String, slotDuration: Int): List<LocalDateTime> {
+        try {
+            val startTime = LocalTime.parse(opening)
+            val endTime = LocalTime.parse(closing)
+            
+            val availableTimes = mutableListOf<LocalDateTime>()
+            var currentTime = startTime
+            
+            while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
+                val dateTime = date.atTime(currentTime)
+                availableTimes.add(dateTime)
+                currentTime = currentTime.plusMinutes(slotDuration.toLong())
+            }
+            
+            return availableTimes
+        } catch (e: Exception) {
+            println("Müsait zamanlar hesaplanırken hata: ${e.message}")
+            return emptyList()
         }
     }
 } 

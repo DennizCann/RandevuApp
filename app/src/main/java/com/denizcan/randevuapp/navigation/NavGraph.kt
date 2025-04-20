@@ -1,5 +1,6 @@
 package com.denizcan.randevuapp.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,7 +16,6 @@ import com.denizcan.randevuapp.ui.screen.RegisterScreen
 import com.denizcan.randevuapp.ui.screen.CustomerHomeScreen
 import com.denizcan.randevuapp.ui.screen.BusinessHomeScreen
 import com.denizcan.randevuapp.viewmodel.AuthViewModel
-import com.denizcan.randevuapp.viewmodel.AuthViewModel.AuthState
 import com.denizcan.randevuapp.viewmodel.UserInfoViewModel
 import com.denizcan.randevuapp.viewmodel.HomeViewModel
 import com.denizcan.randevuapp.viewmodel.UserInfoViewModel.UserInfoState
@@ -39,16 +39,30 @@ import com.denizcan.randevuapp.ui.screen.CustomerAppointmentsScreen
 import com.denizcan.randevuapp.viewmodel.CustomerHomeViewModel
 import com.denizcan.randevuapp.viewmodel.CustomerHomeViewModel.CustomerHomeState
 import com.denizcan.randevuapp.viewmodel.CustomerHomeViewModel.AppointmentsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.denizcan.randevuapp.model.User
+import com.google.firebase.auth.FirebaseAuth
 
 sealed class Screen(val route: String) {
-    object CustomerLogin : Screen("customer_login")
-    object BusinessLogin : Screen("business_login")
+    object Login : Screen("login")
     object CustomerRegister : Screen("customer_register")
     object BusinessRegister : Screen("business_register")
-    object CustomerHome : Screen("customer_home")
-    object BusinessHome : Screen("business_home")
-    object CustomerInfo : Screen("customer_info")
-    object BusinessInfo : Screen("business_info")
+    object CustomerInfo : Screen("customer_info/{userId}") {
+        fun createRoute(userId: String) = "customer_info/$userId"
+    }
+    object BusinessInfo : Screen("business_info/{userId}") {
+        fun createRoute(userId: String) = "business_info/$userId"
+    }
+    object CustomerHome : Screen("customer_home/{userId}") {
+        fun createRoute(userId: String) = "customer_home/$userId"
+    }
+    object BusinessHome : Screen("business_home/{userId}") {
+        fun createRoute(userId: String) = "business_home/$userId"
+    }
     object BusinessList : Screen("business_list")
     object BusinessDetail : Screen("business_detail")
     object WorkingHours : Screen("working_hours/{businessId}") {
@@ -66,110 +80,65 @@ sealed class Screen(val route: String) {
 @Composable
 fun NavGraph(navController: NavHostController) {
     val authViewModel: AuthViewModel = viewModel()
+    val authState = authViewModel.authState.collectAsState()
     val userInfoViewModel: UserInfoViewModel = viewModel()
     val homeViewModel: HomeViewModel = viewModel()
 
-    // AuthState'i dinle
-    LaunchedEffect(authViewModel.authState) {
-        authViewModel.authState.collect { state ->
-            when (state) {
-                is AuthState.Success -> {
-                    if (state.isNewUser) {
-                        // Yeni kullanıcı ise bilgi formuna yönlendir
-                        when (state.userType) {
-                            "customer" -> {
-                                navController.navigate(Screen.CustomerInfo.route + "/${state.userId}") {
-                                    popUpTo(Screen.CustomerLogin.route) { inclusive = true }
-                                }
-                            }
-                            "business" -> {
-                                navController.navigate(Screen.BusinessInfo.route + "/${state.userId}") {
-                                    popUpTo(Screen.BusinessLogin.route) { inclusive = true }
-                                }
-                            }
-                        }
-                    } else {
-                        // Mevcut kullanıcı ise direkt ana sayfaya yönlendir
-                        when (state.userType) {
-                            "customer" -> {
-                                navController.navigate(Screen.CustomerHome.route) {
-                                    popUpTo(Screen.CustomerLogin.route) { inclusive = true }
-                                }
-                            }
-                            "business" -> {
-                                navController.navigate(Screen.BusinessHome.route) {
-                                    popUpTo(Screen.BusinessLogin.route) { inclusive = true }
-                                }
-                            }
-                        }
-                    }
-                }
-                else -> {} // Diğer durumlar için şimdilik bir şey yapmıyoruz
-            }
-        }
-    }
-
-    // UserInfoState'i dinle
-    LaunchedEffect(userInfoViewModel.userInfoState) {
-        userInfoViewModel.userInfoState.collect { state ->
-            when (state) {
-                is UserInfoState.Success -> {
-                    // Kullanıcı tipine göre ana sayfaya yönlendir
-                    val currentRoute = navController.currentBackStackEntry?.destination?.route
-                    when {
-                        currentRoute?.startsWith(Screen.CustomerInfo.route) == true -> {
-                            navController.navigate(Screen.CustomerHome.route) {
-                                popUpTo(Screen.CustomerInfo.route + "/{userId}") { inclusive = true }
-                            }
-                        }
-                        currentRoute?.startsWith(Screen.BusinessInfo.route) == true -> {
-                            navController.navigate(Screen.BusinessHome.route) {
-                                popUpTo(Screen.BusinessInfo.route + "/{userId}") { inclusive = true }
-                            }
-                        }
-                    }
-                }
-                else -> {} // Diğer durumlar için şimdilik bir şey yapmıyoruz
-            }
-        }
-    }
-
     NavHost(
         navController = navController,
-        startDestination = Screen.CustomerLogin.route
+        startDestination = Screen.Login.route
     ) {
-        composable(Screen.CustomerLogin.route) {
+        composable(Screen.Login.route) {
+            val isBusinessLogin = remember { mutableStateOf(false) }
+            
             LoginScreen(
                 onLoginClick = { email, password ->
-                    authViewModel.signIn(email, password, false)
+                    authViewModel.signIn(email, password, isBusinessLogin.value)
                 },
-                onRegisterClick = {
-                    navController.navigate(Screen.CustomerRegister.route)
+                onRegisterClick = { 
+                    if (isBusinessLogin.value) {
+                        navController.navigate(Screen.BusinessRegister.route)
+                    } else {
+                        navController.navigate(Screen.CustomerRegister.route)
+                    }
                 },
-                isBusinessLogin = false,
-                onSwitchLoginType = {
-                    navController.navigate(Screen.BusinessLogin.route) {
-                        popUpTo(Screen.CustomerLogin.route) { inclusive = true }
+                isBusinessLogin = isBusinessLogin.value,
+                onSwitchLoginType = { isBusinessLogin.value = !isBusinessLogin.value }
+            )
+            
+            LaunchedEffect(authState.value) {
+                when (val state = authState.value) {
+                    is AuthViewModel.AuthState.Success -> {
+                        if (!state.isNewUser) {
+                            if (state.userType == "business") {
+                                navController.navigate(Screen.BusinessHome.createRoute(state.userId)) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.CustomerHome.createRoute(state.userId)) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            }
+                        } else {
+                            if (state.userType == "business") {
+                                navController.navigate(Screen.BusinessInfo.createRoute(state.userId)) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.CustomerInfo.createRoute(state.userId)) {
+                                    popUpTo(Screen.Login.route) { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                    is AuthViewModel.AuthState.Error -> {
+                        // Hata durumunda gerekli işlemler yapılabilir
+                    }
+                    else -> {
+                        // Diğer durumlar için gerekli işlemler
                     }
                 }
-            )
-        }
-
-        composable(Screen.BusinessLogin.route) {
-            LoginScreen(
-                onLoginClick = { email, password ->
-                    authViewModel.signIn(email, password, true)
-                },
-                onRegisterClick = {
-                    navController.navigate(Screen.BusinessRegister.route)
-                },
-                isBusinessLogin = true,
-                onSwitchLoginType = {
-                    navController.navigate(Screen.CustomerLogin.route) {
-                        popUpTo(Screen.BusinessLogin.route) { inclusive = true }
-                    }
-                }
-            )
+            }
         }
 
         composable(Screen.CustomerRegister.route) {
@@ -182,6 +151,22 @@ fun NavGraph(navController: NavHostController) {
                 },
                 isBusinessRegister = false
             )
+            
+            // Kayıt başarılı olduğunda kullanıcı bilgileri sayfasına yönlendir
+            LaunchedEffect(authState.value) {
+                when (val state = authState.value) {
+                    is AuthViewModel.AuthState.Success -> {
+                        Log.d("NavGraph", "Kayıt başarılı, kullanıcı bilgileri sayfasına yönlendiriliyor...")
+                        navController.navigate(Screen.CustomerInfo.createRoute(state.userId)) {
+                            popUpTo(Screen.CustomerRegister.route) { inclusive = true }
+                        }
+                    }
+                    is AuthViewModel.AuthState.Error -> {
+                        Log.e("NavGraph", "Kayıt hatası: ${state.message}")
+                    }
+                    else -> {}
+                }
+            }
         }
 
         composable(Screen.BusinessRegister.route) {
@@ -194,38 +179,102 @@ fun NavGraph(navController: NavHostController) {
                 },
                 isBusinessRegister = true
             )
+            
+            // Kayıt başarılı olduğunda işletme bilgileri sayfasına yönlendir
+            LaunchedEffect(authState.value) {
+                when (val state = authState.value) {
+                    is AuthViewModel.AuthState.Success -> {
+                        Log.d("NavGraph", "İşletme kaydı başarılı, işletme bilgileri sayfasına yönlendiriliyor...")
+                        navController.navigate(Screen.BusinessInfo.createRoute(state.userId)) {
+                            popUpTo(Screen.BusinessRegister.route) { inclusive = true }
+                        }
+                    }
+                    is AuthViewModel.AuthState.Error -> {
+                        Log.e("NavGraph", "Kayıt hatası: ${state.message}")
+                    }
+                    else -> {}
+                }
+            }
         }
 
         composable(
-            route = Screen.CustomerInfo.route + "/{userId}",
+            route = Screen.CustomerInfo.route,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            
+            // ViewModel'i bu composable scope'unda tanımlayalım
+            val userInfoViewModel: UserInfoViewModel = viewModel()
+            val userInfoState = userInfoViewModel.userInfoState.collectAsState()
+            
+            // Composable içinde kullanılacak coroutine scope
+            val coroutineScope = rememberCoroutineScope()
+            
             CustomerInfoScreen(
                 onSaveClick = { fullName, phone ->
+                    Log.d("NavGraph", "CustomerInfoScreen'den onSaveClick çağrıldı")
                     userInfoViewModel.saveCustomerInfo(userId, fullName, phone)
                 },
                 userId = userId
             )
+            
+            // State değişimini daha net bir şekilde izleyelim
+            DisposableEffect(Unit) {
+                val job = coroutineScope.launch {  // viewModelScope yerine coroutineScope
+                    userInfoViewModel.userInfoState.collect { state ->
+                        Log.d("NavGraph", "UserInfoState değişti: $state")
+                        if (state is UserInfoState.Success) {
+                            Log.d("NavGraph", "Success state algılandı, ana sayfaya yönlendiriliyor")
+                            navController.navigate(Screen.CustomerHome.createRoute(userId)) {
+                                popUpTo(Screen.CustomerInfo.route) { inclusive = true }
+                            }
+                            userInfoViewModel.resetState()
+                        }
+                    }
+                }
+                
+                onDispose {
+                    job.cancel()
+                }
+            }
         }
 
         composable(
-            route = Screen.BusinessInfo.route + "/{userId}",
+            route = Screen.BusinessInfo.route,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val userInfoState = userInfoViewModel.userInfoState.collectAsState()
+            
             BusinessInfoScreen(
                 onSaveClick = { businessName, address, phone, sector ->
                     userInfoViewModel.saveBusinessInfo(userId, businessName, address, phone, sector)
                 },
                 userId = userId
             )
+            
+            // İşletme bilgileri başarıyla kaydedildiğinde ana sayfaya yönlendir
+            LaunchedEffect(key1 = userInfoState.value) {
+                when (val state = userInfoState.value) {
+                    is UserInfoState.Success -> {
+                        // Başarılı kayıttan sonra ana sayfaya geç
+                        navController.navigate(Screen.BusinessHome.createRoute(userId)) {
+                            popUpTo(Screen.BusinessInfo.route) { inclusive = true }
+                        }
+                        
+                        // ViewModel durumunu sıfırla
+                        userInfoViewModel.resetState()
+                    }
+                    else -> {}
+                }
+            }
         }
 
         composable(Screen.CustomerHome.route) {
             val viewModel: CustomerHomeViewModel = viewModel()
             val state = viewModel.uiState.collectAsState()
-
+            val coroutineScope = rememberCoroutineScope()
+            
             LaunchedEffect(Unit) {
                 val currentUser = homeViewModel.getCurrentUser()
                 if (currentUser != null) {
@@ -247,9 +296,12 @@ fun NavGraph(navController: NavHostController) {
                             navController.navigate(Screen.CustomerAppointments.route)
                         },
                         onLogoutClick = {
-                            homeViewModel.signOut()
-                            navController.navigate(Screen.CustomerLogin.route) {
-                                popUpTo(Screen.CustomerHome.route) { inclusive = true }
+                            // Doğrudan auth'u burada çağıralım ve sign out yapalım
+                            FirebaseAuth.getInstance().signOut()
+                            Log.d("NavGraph", "Kullanıcı çıkış yapıldı, giriş ekranına yönlendiriliyor")
+                            // Direkt navigasyon yapalım
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
                         }
                     )
@@ -290,9 +342,12 @@ fun NavGraph(navController: NavHostController) {
                             navController.navigate(Screen.AppointmentRequests.createRoute(currentState.business.id))
                         },
                         onLogoutClick = {
-                            homeViewModel.signOut()
-                            navController.navigate(Screen.BusinessLogin.route) {
-                                popUpTo(Screen.BusinessHome.route) { inclusive = true }
+                            // Doğrudan auth'u burada çağıralım ve sign out yapalım
+                            FirebaseAuth.getInstance().signOut()
+                            Log.d("NavGraph", "Kullanıcı çıkış yapıldı, giriş ekranına yönlendiriliyor")
+                            // Direkt navigasyon yapalım
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
                         }
                     )
@@ -317,9 +372,16 @@ fun NavGraph(navController: NavHostController) {
 
             when (val currentState = state.value) {
                 is BusinessHomeState.Success -> {
+                    // User.WorkingHours sınıfından bir örnek oluştur
+                    val workingHours = User.WorkingHours(
+                        opening = "09:00",
+                        closing = "17:00",
+                        slotDuration = 60
+                    )
+                    
                     WorkingHoursScreen(
                         workingDays = currentState.business.workingDays,
-                        workingHours = currentState.business.workingHours,
+                        workingHours = workingHours,  // Map yerine User.WorkingHours kullan
                         onSaveClick = { days, hours ->
                             viewModel.updateWorkingHours(days, hours)
                             navController.navigateUp()
@@ -389,22 +451,13 @@ fun NavGraph(navController: NavHostController) {
                         business = currentState.business,
                         availableSlots = currentState.availableSlots,
                         selectedDate = currentState.selectedDate,
-                        onDateSelect = { date ->
-                            viewModel.updateSelectedDate(date)
-                        },
-                        onTimeSelect = { time ->
-                            viewModel.updateSelectedTime(time)
-                        },
-                        onNoteChange = { note ->
-                            viewModel.updateNote(note)
-                        },
-                        onAppointmentRequest = {
+                        onDateSelect = viewModel::updateSelectedDate,
+                        onTimeSelect = viewModel::updateSelectedTime,
+                        onNoteChange = viewModel::updateNote,
+                        onAppointmentRequest = { 
                             currentUser?.let { user ->
                                 viewModel.createAppointment(user.uid)
-                                // Başarılı olduğunda randevularım sayfasına git
-                                navController.navigate(Screen.CustomerAppointments.route) {
-                                    popUpTo(Screen.BusinessDetail.route + "/{businessId}") { inclusive = true }
-                                }
+                                navController.navigateUp()
                             }
                         },
                         onBackClick = {

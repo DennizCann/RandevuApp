@@ -1,5 +1,6 @@
 package com.denizcan.randevuapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.denizcan.randevuapp.service.FirebaseService
@@ -28,14 +29,29 @@ class HomeViewModel : ViewModel() {
     }
 
     fun signOut() {
-        viewModelScope.launch {
-            try {
-                _homeState.value = HomeState.Loading
-                auth.signOut()
+        try {
+            // Önce mevcut oturumu kontrol et
+            val currentUser = auth.currentUser
+            Log.d("HomeViewModel", "Çıkış yapan kullanıcı: ${currentUser?.email}")
+            
+            // Firestore/SharedPreferences temizliği (varsa)
+            // ...
+            
+            // Firebase çıkış işlemi
+            auth.signOut()
+            
+            // Çıkış sonrası doğrulama
+            val afterSignOut = auth.currentUser
+            if (afterSignOut == null) {
+                Log.d("HomeViewModel", "Kullanıcı başarıyla çıkış yaptı")
                 _homeState.value = HomeState.Success
-            } catch (e: Exception) {
-                _homeState.value = HomeState.Error(e.message ?: "Çıkış yapılamadı")
+            } else {
+                Log.e("HomeViewModel", "Çıkış yapılamadı, kullanıcı hala oturumda")
+                _homeState.value = HomeState.Error("Çıkış yapılamadı")
             }
+        } catch (e: Exception) {
+            Log.e("HomeViewModel", "Çıkış yapılırken hata oluştu: ${e.message}")
+            _homeState.value = HomeState.Error(e.message ?: "Çıkış yapılamadı")
         }
     }
 } 

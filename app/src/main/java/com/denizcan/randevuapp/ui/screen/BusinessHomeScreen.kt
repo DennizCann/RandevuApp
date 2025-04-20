@@ -1,11 +1,14 @@
 package com.denizcan.randevuapp.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.MainActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,8 +84,12 @@ fun BusinessHomeScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         // Çıkış Butonu
+        val context = LocalContext.current
         OutlinedButton(
-            onClick = onLogoutClick,
+            onClick = {
+                Log.d("BusinessHomeScreen", "Çıkış butonuna basıldı")
+                MainActivity.logout(context)
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Çıkış Yap")

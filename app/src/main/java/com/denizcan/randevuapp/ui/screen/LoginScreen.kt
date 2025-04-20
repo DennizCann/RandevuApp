@@ -5,8 +5,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
@@ -25,16 +27,35 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isBusinessLogin) "İşletme Girişi" else "Müşteri Girişi",
+            text = "Randevu Uygulaması",
             style = MaterialTheme.typography.headlineMedium
         )
         
         Spacer(modifier = Modifier.height(32.dp))
         
+        // Kullanıcı tipi seçici
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(bottom = 24.dp)) {
+            SegmentedButton(
+                selected = !isBusinessLogin,
+                onClick = { if (isBusinessLogin) onSwitchLoginType() },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) {
+                Text("Müşteri")
+            }
+            SegmentedButton(
+                selected = isBusinessLogin,
+                onClick = { if (!isBusinessLogin) onSwitchLoginType() },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) {
+                Text("İşletme")
+            }
+        }
+        
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("E-posta") }
+            label = { Text("E-posta") },
+            singleLine = true
         )
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -42,21 +63,22 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Şifre") }
+            label = { Text("Şifre") },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Button(onClick = { onLoginClick(email, password) }) {
+        Button(
+            onClick = { onLoginClick(email, password) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Giriş Yap")
         }
         
         TextButton(onClick = onRegisterClick) {
             Text("Hesap Oluştur")
-        }
-
-        TextButton(onClick = onSwitchLoginType) {
-            Text(if (isBusinessLogin) "Müşteri Girişine Geç" else "İşletme Girişine Geç")
         }
     }
 } 

@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.User
+import com.denizcan.randevuapp.ui.components.AppTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,85 +20,94 @@ fun BusinessListScreen(
     onBackClick: () -> Unit
 ) {
     var selectedSector by remember { mutableStateOf<String?>(null) }
-    var expanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     
-    val filteredBusinesses = remember(selectedSector, businesses) {
-        if (selectedSector == null) businesses
-        else businesses.filter { it.sector == selectedSector }
+    val filteredBusinesses = businesses.filter { business ->
+        val matchesSector = selectedSector == null || business.sector == selectedSector
+        val matchesQuery = business.businessName.contains(searchQuery, ignoreCase = true)
+        matchesSector && matchesQuery
     }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Üst Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                // Geri butonu ikonu
-            }
-            Text(
-                text = "İşletmeler",
-                style = MaterialTheme.typography.headlineMedium
+    
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                title = "İşletmeler",
+                onBackClick = onBackClick
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Sektör Filtresi
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.fillMaxWidth()
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues) // Scaffold padding'lerini uygula
+                .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = selectedSector ?: "Tüm Sektörler",
-                onValueChange = { },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(),
-                label = { Text("Sektör Seçin") }
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+            // Üst Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                DropdownMenuItem(
-                    text = { Text("Tüm Sektörler") },
-                    onClick = { 
-                        selectedSector = null
-                        expanded = false
-                    }
+                IconButton(onClick = onBackClick) {
+                    // Geri butonu ikonu
+                }
+                Text(
+                    text = "İşletmeler",
+                    style = MaterialTheme.typography.headlineMedium
                 )
-                sectors.forEach { sector ->
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sektör Filtresi
+            ExposedDropdownMenuBox(
+                expanded = false,
+                onExpandedChange = { },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedSector ?: "Tüm Sektörler",
+                    onValueChange = { },
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    label = { Text("Sektör Seçin") }
+                )
+
+                ExposedDropdownMenu(
+                    expanded = false,
+                    onDismissRequest = { }
+                ) {
                     DropdownMenuItem(
-                        text = { Text(sector) },
+                        text = { Text("Tüm Sektörler") },
                         onClick = { 
-                            selectedSector = sector
-                            expanded = false
+                            selectedSector = null
                         }
                     )
+                    sectors.forEach { sector ->
+                        DropdownMenuItem(
+                            text = { Text(sector) },
+                            onClick = { 
+                                selectedSector = sector
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // İşletme Listesi
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredBusinesses) { business ->
-                BusinessCard(
-                    business = business,
-                    onClick = { onBusinessClick(business.id) }
-                )
+            // İşletme Listesi
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredBusinesses) { business ->
+                    BusinessCard(
+                        business = business,
+                        onClick = { onBusinessClick(business.id) }
+                    )
+                }
             }
         }
     }

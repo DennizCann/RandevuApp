@@ -18,13 +18,12 @@ sealed class User {
         val sector: String = "",
         val type: String = "business",
         val workingDays: List<String> = emptyList(),
-        val workingHours: WorkingHours = WorkingHours(),
-        val timeSlotDuration: Int = 30 // dakika cinsinden
+        val workingHours: WorkingHours = WorkingHours()
     ) : User()
 
     data class WorkingHours(
-        val startTime: String = "09:00",
-        val endTime: String = "18:00",
-        val slotDuration: Int = 30 // dakika cinsinden
+        val opening: String = "09:00",
+        val closing: String = "18:00",
+        val slotDuration: Int = 60 // dakika cinsinden
     )
 } 

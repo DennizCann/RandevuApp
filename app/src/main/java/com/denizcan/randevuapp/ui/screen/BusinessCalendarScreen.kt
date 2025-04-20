@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
+import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
@@ -29,72 +30,65 @@ fun BusinessCalendarScreen(
     onCancelAndBlock: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Üst Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                // Geri butonu ikonu
-            }
-            Text(
-                text = "Takvim",
-                style = MaterialTheme.typography.headlineMedium
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                title = "Takvim",
+                onBackClick = onBackClick
             )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues) // Scaffold padding'lerini uygula
+                .padding(16.dp)
+        ) {
+            // Tarih Seçici
+            DateSelector(
+                selectedDate = selectedDate,
+                onDateSelect = onDateSelect
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Tarih Seçici
-        DateSelector(
-            selectedDate = selectedDate,
-            onDateSelect = onDateSelect
-        )
+            // Seçili Tarih
+            Text(
+                text = selectedDate.format(
+                    DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("tr"))
+                ),
+                style = MaterialTheme.typography.titleMedium
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Seçili Tarih
-        Text(
-            text = selectedDate.format(
-                DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("tr"))
-            ),
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Zaman aralıkları ve randevuların birleştirilmiş listesi
-        if (availableTimeSlots.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Bu tarihte çalışma saati bulunmuyor")
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(availableTimeSlots) { timeSlot ->
-                    // Bu zaman diliminde randevu var mı kontrol et
-                    val appointment = appointments.find { 
-                        it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot 
+            // Zaman aralıkları ve randevuların birleştirilmiş listesi
+            if (availableTimeSlots.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Bu tarihte çalışma saati bulunmuyor")
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableTimeSlots) { timeSlot ->
+                        // Bu zaman diliminde randevu var mı kontrol et
+                        val appointment = appointments.find { 
+                            it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot 
+                        }
+                        
+                        TimeSlotCard(
+                            timeSlot = timeSlot,
+                            appointment = appointment,
+                            onBlockSlot = { onTimeSlotBlock(timeSlot) },
+                            onStatusChange = { id, status -> onAppointmentStatusChange(id, status) },
+                            onUnblockSlot = { id -> onTimeSlotUnblock(id) },
+                            onCancelAndBlock = { id -> onCancelAndBlock(id) }
+                        )
                     }
-                    
-                    TimeSlotCard(
-                        timeSlot = timeSlot,
-                        appointment = appointment,
-                        onBlockSlot = { onTimeSlotBlock(timeSlot) },
-                        onStatusChange = { id, status -> onAppointmentStatusChange(id, status) },
-                        onUnblockSlot = { id -> onTimeSlotUnblock(id) },
-                        onCancelAndBlock = { id -> onCancelAndBlock(id) }
-                    )
                 }
             }
         }

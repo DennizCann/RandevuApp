@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
+import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
 
@@ -20,44 +21,37 @@ fun CustomerAppointmentsScreen(
     onCancelAppointment: (String) -> Unit,
     onBackClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Üst Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                // Geri butonu ikonu
-            }
-            Text(
-                text = "Randevularım",
-                style = MaterialTheme.typography.headlineMedium
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                title = "Randevularım",
+                onBackClick = onBackClick
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (appointments.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Henüz randevunuz bulunmuyor")
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(appointments) { appointment ->
-                    AppointmentCard(
-                        appointment = appointment,
-                        onCancelAppointment = onCancelAppointment
-                    )
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues) // Scaffold padding'lerini uygula
+                .padding(16.dp)
+        ) {
+            if (appointments.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Henüz randevunuz bulunmuyor")
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(appointments) { appointment ->
+                        AppointmentCard(
+                            appointment = appointment,
+                            onCancelAppointment = onCancelAppointment
+                        )
+                    }
                 }
             }
         }

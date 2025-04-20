@@ -20,7 +20,9 @@ import com.denizcan.randevuapp.model.User
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.TextStyle
 import java.util.*
+import com.denizcan.randevuapp.ui.components.AppTopBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusinessDetailScreen(
     business: User.Business,
@@ -36,139 +38,132 @@ fun BusinessDetailScreen(
     var selectedTime by remember { mutableStateOf<String?>(null) }
     var note by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .padding(bottom = 80.dp) // Buton için yer ayırma
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Üst Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                title = business.businessName,
+                onBackClick = onBackClick
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .padding(bottom = 80.dp) // Buton için yer ayırma
+                    .verticalScroll(rememberScrollState())
             ) {
-                IconButton(onClick = onBackClick) {
-                    // Geri butonu ikonu
-                }
-                Text(
-                    text = business.businessName,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // İşletme Bilgileri
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                // İşletme Bilgileri
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Text(
-                        text = "Adres: ${business.address}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Telefon: ${business.phone}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Adres: ${business.address}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Telefon: ${business.phone}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Tarih Seçici Başlık
-            Text(
-                text = "Tarih Seçin",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            // Tarih Seçici
-            DateSelectorRow(
-                selectedDate = selectedDate,
-                onDateSelect = onDateSelect
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Saat Seçici Başlık
-            Text(
-                text = "Saat Seçin",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            // Saat Seçici
-            TimeSlotGrid(
-                availableSlots = availableSlots,
-                selectedTime = selectedTime,
-                onTimeSelect = { time ->
-                    selectedTime = time
-                    onTimeSelect(time)
-                }
-            )
-
-            // Not alanı
-            if (selectedTime != null) {
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // Not Başlık
+
+                // Tarih Seçici Başlık
                 Text(
-                    text = "Randevu Notu",
+                    text = "Tarih Seçin",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
-                
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { 
-                        note = it
-                        onNoteChange(it)
-                    },
-                    placeholder = { Text("İşletmeye iletmek istediğiniz notlar (isteğe bağlı)...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 5
+
+                // Tarih Seçici
+                DateSelectorRow(
+                    selectedDate = selectedDate,
+                    onDateSelect = onDateSelect
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Saat Seçici Başlık
+                Text(
+                    text = "Saat Seçin",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                // Saat Seçici
+                TimeSlotGrid(
+                    availableSlots = availableSlots,
+                    selectedTime = selectedTime,
+                    onTimeSelect = { time ->
+                        selectedTime = time
+                        onTimeSelect(time)
+                    }
+                )
+
+                // Not alanı
+                if (selectedTime != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Not Başlık
+                    Text(
+                        text = "Randevu Notu",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { 
+                            note = it
+                            onNoteChange(it)
+                        },
+                        placeholder = { Text("İşletmeye iletmek istediğiniz notlar (isteğe bağlı)...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                        maxLines = 5
+                    )
+                }
+
+                // Alt boşluk
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // Alt boşluk
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // Sabit Randevu Talebi Butonu
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
-        ) {
-            Button(
-                onClick = onAppointmentRequest,
+            // Sabit Randevu Talebi Butonu
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                enabled = selectedTime != null && !isLoading
+                    .align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Randevu Talep Et")
+                Button(
+                    onClick = onAppointmentRequest,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    enabled = selectedTime != null && !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Randevu Talep Et")
+                    }
                 }
             }
         }

@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.denizcan.randevuapp.model.User
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
-import com.denizcan.randevuapp.model.WorkingHours
 import com.denizcan.randevuapp.service.FirebaseService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +12,7 @@ import kotlinx.coroutines.launch
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.LocalDateTime
 
 class BusinessHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -129,8 +129,8 @@ class BusinessHomeViewModel : ViewModel() {
         }
         
         val workingHours = business.workingHours
-        val startTime = LocalTime.parse(workingHours.startTime)
-        val endTime = LocalTime.parse(workingHours.endTime)
+        val startTime = LocalTime.parse(workingHours.opening)
+        val endTime = LocalTime.parse(workingHours.closing)
         val slotDuration = workingHours.slotDuration
         
         // Tüm zaman dilimlerini oluştur
@@ -248,6 +248,27 @@ class BusinessHomeViewModel : ViewModel() {
             } catch (e: Exception) {
                 _calendarState.value = CalendarState.Error(e.message ?: "Randevu iptal edilemedi")
             }
+        }
+    }
+
+    private fun generateTimeSlots(date: LocalDate, opening: String, closing: String, slotDuration: Int): List<org.threeten.bp.LocalDateTime> {
+        try {
+            val startTime = LocalTime.parse(opening)
+            val endTime = LocalTime.parse(closing)
+            
+            val timeSlots = mutableListOf<org.threeten.bp.LocalDateTime>()
+            var currentTime = startTime
+            
+            while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
+                val dateTime = date.atTime(currentTime)
+                timeSlots.add(dateTime)
+                currentTime = currentTime.plusMinutes(slotDuration.toLong())
+            }
+            
+            return timeSlots
+        } catch (e: Exception) {
+            println("Zaman aralıkları oluşturulurken hata: ${e.message}")
+            return emptyList()
         }
     }
 } 

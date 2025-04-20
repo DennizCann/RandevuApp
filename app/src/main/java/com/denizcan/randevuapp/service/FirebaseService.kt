@@ -3,7 +3,6 @@ package com.denizcan.randevuapp.service
 import com.denizcan.randevuapp.model.User
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
-import com.denizcan.randevuapp.model.WorkingHours
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -12,6 +11,7 @@ import com.google.firebase.Timestamp
 import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.Instant
+import android.util.Log
 
 class FirebaseService {
     private val auth = FirebaseAuth.getInstance()
@@ -24,13 +24,46 @@ class FirebaseService {
         auth.createUserWithEmailAndPassword(email, password).await()
 
     suspend fun saveUserData(user: User) {
-        when (user) {
-            is User.Customer -> {
-                firestore.collection("customers").document(user.id).set(user).await()
+        try {
+            Log.d("FirebaseService", "Kullanıcı verisi kaydediliyor: $user")
+            
+            when (user) {
+                is User.Customer -> {
+                    // Map tüm veriyi açık bir şekilde kontrol edelim
+                    val userData = mapOf(
+                        "id" to user.id,
+                        "email" to user.email,
+                        "fullName" to user.fullName,
+                        "phone" to user.phone,
+                        "type" to user.type
+                    )
+                    
+                    Log.d("FirebaseService", "Müşteri verisi: $userData")
+                    firestore.collection("customers").document(user.id).set(userData).await()
+                    Log.d("FirebaseService", "Müşteri verisi başarıyla kaydedildi")
+                }
+                is User.Business -> {
+                    // Benzer şekilde
+                    val userData = mapOf(
+                        "id" to user.id,
+                        "email" to user.email,
+                        "businessName" to user.businessName,
+                        "address" to user.address,
+                        "phone" to user.phone,
+                        "sector" to user.sector,
+                        "type" to user.type,
+                        "workingDays" to user.workingDays,
+                        "workingHours" to user.workingHours
+                    )
+                    
+                    Log.d("FirebaseService", "İşletme verisi: $userData")
+                    firestore.collection("businesses").document(user.id).set(userData).await()
+                    Log.d("FirebaseService", "İşletme verisi başarıyla kaydedildi")
+                }
             }
-            is User.Business -> {
-                firestore.collection("businesses").document(user.id).set(user).await()
-            }
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Veri kaydedilemedi: ${e.message}")
+            throw e
         }
     }
 
@@ -46,13 +79,17 @@ class FirebaseService {
 
     suspend fun getUserData(userId: String, userType: String): User? {
         return try {
-            val collection = if (userType == "customer") "customers" else "businesses"
-            val document = firestore.collection(collection).document(userId).get().await()
+            val collectionName = if (userType == "business") "businesses" else "customers"
+            val docRef = firestore.collection(collectionName).document(userId).get().await()
             
-            when (userType) {
-                "customer" -> document.toObject(User.Customer::class.java)
-                "business" -> document.toObject(User.Business::class.java)
-                else -> null
+            if (docRef.exists()) {
+                if (userType == "business") {
+                    docRef.toObject(User.Business::class.java)
+                } else {
+                    docRef.toObject(User.Customer::class.java)
+                }
+            } else {
+                null
             }
         } catch (e: Exception) {
             null
@@ -346,6 +383,37 @@ class FirebaseService {
             } else null
         } catch (e: Exception) {
             null
+        }
+    }
+
+    suspend fun saveCustomerData(userId: String, customerData: Map<String, Any>) {
+        try {
+            Log.d("FirebaseService", "Müşteri verisi kaydediliyor: $customerData")
+            
+            // Kullanıcı oturumunu kontrol et
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                throw Exception("Oturum süresi dolmuş (currentUser null)")
+            }
+            
+            // Kullanıcı ID'sini kontrol et
+            if (currentUser.uid != userId) {
+                throw Exception("Yetkilendirme hatası: Mevcut kullanıcı ID (${currentUser.uid}) ile istenen ID ($userId) eşleşmiyor")
+            }
+            
+            // Firebase token ID'yi kontrol et (opsiyonel)
+            val tokenResult = currentUser.getIdToken(false).await()
+            Log.d("FirebaseService", "Token: ${tokenResult.token?.take(15)}...")
+            
+            firestore.collection("customers")
+                .document(userId)
+                .set(customerData)
+                .await()
+            
+            Log.d("FirebaseService", "Müşteri verisi başarıyla kaydedildi")
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Müşteri verisi kaydedilemedi: ${e.message}", e)
+            throw e
         }
     }
 } 
