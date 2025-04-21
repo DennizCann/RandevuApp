@@ -3,7 +3,7 @@ package com.denizcan.randevuapp.model
 import org.threeten.bp.LocalDateTime
 
 data class Appointment(
-    val id: String = "",
+    var id: String = "",
     val businessId: String = "",
     val businessName: String = "",
     val customerId: String = "",

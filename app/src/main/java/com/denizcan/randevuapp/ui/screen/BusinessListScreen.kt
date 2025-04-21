@@ -7,7 +7,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.R
 import com.denizcan.randevuapp.model.User
 import com.denizcan.randevuapp.ui.components.AppTopBar
 
@@ -21,17 +23,18 @@ fun BusinessListScreen(
 ) {
     var selectedSector by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
     
     val filteredBusinesses = businesses.filter { business ->
-        val matchesSector = selectedSector == null || business.sector == selectedSector
-        val matchesQuery = business.businessName.contains(searchQuery, ignoreCase = true)
+        val matchesSector = selectedSector == null || selectedSector == "" || business.sector == selectedSector
+        val matchesQuery = searchQuery.isEmpty() || business.businessName.contains(searchQuery, ignoreCase = true)
         matchesSector && matchesQuery
     }
     
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "İşletmeler",
+                title = stringResource(id = R.string.businesses),
                 onBackClick = onBackClick
             )
         }
@@ -39,50 +42,46 @@ fun BusinessListScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Scaffold padding'lerini uygula
+                .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Üst Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBackClick) {
-                    // Geri butonu ikonu
-                }
-                Text(
-                    text = "İşletmeler",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Sektör Filtresi
+            Text(
+                text = stringResource(id = R.string.businesses),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Sektör filtresi
+            Text(
+                text = stringResource(id = R.string.select_sector),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            
             ExposedDropdownMenuBox(
-                expanded = false,
-                onExpandedChange = { },
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedSector ?: "Tüm Sektörler",
+                    value = selectedSector ?: stringResource(id = R.string.all_sectors),
                     onValueChange = { },
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(),
-                    label = { Text("Sektör Seçin") }
+                    label = { Text(stringResource(id = R.string.select_sector)) }
                 )
 
                 ExposedDropdownMenu(
-                    expanded = false,
-                    onDismissRequest = { }
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Tüm Sektörler") },
+                        text = { Text(stringResource(id = R.string.all_sectors)) },
                         onClick = { 
                             selectedSector = null
+                            expanded = false
                         }
                     )
                     sectors.forEach { sector ->
@@ -90,23 +89,68 @@ fun BusinessListScreen(
                             text = { Text(sector) },
                             onClick = { 
                                 selectedSector = sector
+                                expanded = false
                             }
                         )
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Toplam işletme: ${businesses.size}, Filtrelenmiş: ${filteredBusinesses.size}",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            if (businesses.isEmpty()) {
+                Text(
+                    text = "Debug: businesses listesi boş",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            if (filteredBusinesses.isEmpty()) {
+                if (selectedSector != null && selectedSector != "") {
+                    Text(
+                        text = "Debug: '$selectedSector' sektöründe işletme bulunamadı",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        text = "Debug: Tüm sektörlerde işletme bulunamadı",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // İşletme Listesi
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(filteredBusinesses) { business ->
-                    BusinessCard(
-                        business = business,
-                        onClick = { onBusinessClick(business.id) }
+            if (filteredBusinesses.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "İşletme bulunamadı",
+                        style = MaterialTheme.typography.bodyLarge
                     )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredBusinesses) { business ->
+                        BusinessCard(
+                            business = business,
+                            onClick = { onBusinessClick(business.id) }
+                        )
+                    }
                 }
             }
         }

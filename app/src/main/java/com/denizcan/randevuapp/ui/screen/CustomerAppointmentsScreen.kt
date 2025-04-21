@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
@@ -102,11 +103,20 @@ private fun AppointmentCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Randevu durumu
-            val (statusText, statusColor) = when (appointment.status) {
-                AppointmentStatus.PENDING -> "Onay Bekliyor" to MaterialTheme.colorScheme.tertiary
-                AppointmentStatus.CONFIRMED -> "Onaylandı" to MaterialTheme.colorScheme.primary
-                AppointmentStatus.CANCELLED -> "Reddedildi" to MaterialTheme.colorScheme.error
-                AppointmentStatus.BLOCKED -> "Kapatıldı" to MaterialTheme.colorScheme.outline
+            val statusText = when (appointment.status) {
+                AppointmentStatus.PENDING -> "Onay Bekliyor"
+                AppointmentStatus.CONFIRMED -> "Onaylandı"
+                AppointmentStatus.CANCELLED -> "İptal Edildi"
+                AppointmentStatus.COMPLETED -> "Tamamlandı"
+                AppointmentStatus.BLOCKED -> "Bloke Edildi"
+            }
+            
+            val statusColor = when (appointment.status) {
+                AppointmentStatus.PENDING -> MaterialTheme.colorScheme.primary
+                AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.tertiary
+                AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                AppointmentStatus.COMPLETED -> MaterialTheme.colorScheme.secondary
+                AppointmentStatus.BLOCKED -> Color.Gray
             }
             
             Text(

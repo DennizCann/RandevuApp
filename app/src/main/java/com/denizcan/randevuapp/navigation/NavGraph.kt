@@ -1,6 +1,8 @@
 package com.denizcan.randevuapp.navigation
 
+import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,6 +48,22 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.denizcan.randevuapp.model.User
 import com.google.firebase.auth.FirebaseAuth
+import com.denizcan.randevuapp.ui.screen.LanguageSettingsScreen
+import androidx.compose.ui.platform.LocalContext
+import com.denizcan.randevuapp.MainActivity
+import com.denizcan.randevuapp.ui.screen.SettingsScreen
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.R
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -64,7 +82,9 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String) = "business_home/$userId"
     }
     object BusinessList : Screen("business_list")
-    object BusinessDetail : Screen("business_detail")
+    object BusinessDetail : Screen("business_detail/{businessId}") {
+        fun createRoute(businessId: String) = "business_detail/$businessId"
+    }
     object WorkingHours : Screen("working_hours/{businessId}") {
         fun createRoute(businessId: String) = "working_hours/$businessId"
     }
@@ -75,6 +95,8 @@ sealed class Screen(val route: String) {
         fun createRoute(businessId: String) = "appointment_requests/$businessId"
     }
     object CustomerAppointments : Screen("customer_appointments")
+    object LanguageSettings : Screen("language_settings")
+    object Settings : Screen("settings")
 }
 
 @Composable
@@ -295,10 +317,11 @@ fun NavGraph(navController: NavHostController) {
                         onAppointmentsClick = {
                             navController.navigate(Screen.CustomerAppointments.route)
                         },
+                        onSettingsClick = { navController.navigate(Screen.Settings.route) },
                         onLogoutClick = {
                             // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()
-                            Log.d("NavGraph", "Kullanıcı çıkış yapıldı, giriş ekranına yönlendiriliyor")
+                            Log.d("NavGraph", "User logged out, redirecting to login screen")
                             // Direkt navigasyon yapalım
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -341,10 +364,11 @@ fun NavGraph(navController: NavHostController) {
                         onRequestsClick = {
                             navController.navigate(Screen.AppointmentRequests.createRoute(currentState.business.id))
                         },
+                        onSettingsClick = { navController.navigate(Screen.Settings.route) },
                         onLogoutClick = {
                             // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()
-                            Log.d("NavGraph", "Kullanıcı çıkış yapıldı, giriş ekranına yönlendiriliyor")
+                            Log.d("NavGraph", "User logged out, redirecting to login screen")
                             // Direkt navigasyon yapalım
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -365,6 +389,7 @@ fun NavGraph(navController: NavHostController) {
             val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
             val viewModel: BusinessHomeViewModel = viewModel()
             val state = viewModel.uiState.collectAsState()
+            val workingHoursState = viewModel.workingHoursState.collectAsState().value
 
             LaunchedEffect(businessId) {
                 viewModel.loadBusinessData(businessId)
@@ -372,23 +397,28 @@ fun NavGraph(navController: NavHostController) {
 
             when (val currentState = state.value) {
                 is BusinessHomeState.Success -> {
-                    // User.WorkingHours sınıfından bir örnek oluştur
-                    val workingHours = User.WorkingHours(
-                        opening = "09:00",
-                        closing = "17:00",
-                        slotDuration = 60
-                    )
+                    val business = currentState.business
                     
                     WorkingHoursScreen(
-                        workingDays = currentState.business.workingDays,
-                        workingHours = workingHours,  // Map yerine User.WorkingHours kullan
-                        onSaveClick = { days, hours ->
-                            viewModel.updateWorkingHours(days, hours)
-                            navController.navigateUp()
+                        workingDays = business.workingDays,
+                        workingHours = business.workingHours,
+                        onWorkingDaysChange = { updatedDays -> 
+                            // Güncellenmiş günleri kaydedin
+                            viewModel.updateWorkingDays(updatedDays)
+                        },
+                        onWorkingHoursChange = { updatedHours ->
+                            // Güncellenmiş saatleri kaydedin
+                            viewModel.updateWorkingHours(updatedHours)
+                        },
+                        onSaveClick = {
+                            // İki değeri de kullanarak çağrı yapın
+                            viewModel.saveWorkingHoursAndDays()
                         },
                         onBackClick = {
-                            navController.navigateUp()
-                        }
+                            navController.popBackStack()
+                        },
+                        isLoading = workingHoursState is BusinessHomeViewModel.WorkingHoursState.Loading,
+                        workingHoursState = workingHoursState
                     )
                 }
                 is BusinessHomeState.Loading -> {
@@ -403,10 +433,14 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.BusinessList.route) {
             val viewModel: BusinessListViewModel = viewModel()
             val state = viewModel.businessListState.collectAsState()
-
+            
+            // Buraya LaunchedEffect ekleyelim - dil değişimi sonrası yeniden yükleme için
+            LaunchedEffect(Unit) {
+                viewModel.loadBusinesses()
+            }
+            
             when (val currentState = state.value) {
                 is BusinessListState.Loading -> {
-                    // Loading UI
                     CircularProgressIndicator()
                 }
                 is BusinessListState.Success -> {
@@ -414,7 +448,7 @@ fun NavGraph(navController: NavHostController) {
                         businesses = currentState.businesses,
                         sectors = currentState.sectors,
                         onBusinessClick = { businessId ->
-                            navController.navigate(Screen.BusinessDetail.route + "/${businessId}")
+                            navController.navigate(Screen.BusinessDetail.createRoute(businessId))
                         },
                         onBackClick = {
                             navController.navigateUp()
@@ -422,29 +456,46 @@ fun NavGraph(navController: NavHostController) {
                     )
                 }
                 is BusinessListState.Error -> {
-                    // Error UI
-                    Text(currentState.message)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(currentState.message)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadBusinesses() }) {
+                            Text(stringResource(id = R.string.try_again))
+                        }
+                    }
                 }
             }
         }
 
         composable(
-            route = Screen.BusinessDetail.route + "/{businessId}",
+            route = Screen.BusinessDetail.route,
             arguments = listOf(navArgument("businessId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val businessId = backStackEntry.arguments?.getString("businessId") ?: ""
+            val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
             val viewModel: BusinessDetailViewModel = viewModel()
             val state = viewModel.uiState.collectAsState()
-            val currentUser = homeViewModel.getCurrentUser()
+            val currentUser = FirebaseAuth.getInstance().currentUser
 
+            // ID'yi debug edelim
             LaunchedEffect(businessId) {
-                viewModel.loadBusinessDetail(businessId)
-                viewModel.loadAvailableSlots(LocalDate.now())
+                Log.d("NavGraph", "İşletme detay ekranı açılıyor, ID: $businessId")
+                viewModel.loadBusinessDetails(businessId)
             }
 
             when (val currentState = state.value) {
                 is BusinessDetailState.Loading -> {
-                    CircularProgressIndicator()
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
                 is BusinessDetailState.Success -> {
                     BusinessDetailScreen(
@@ -467,7 +518,21 @@ fun NavGraph(navController: NavHostController) {
                     )
                 }
                 is BusinessDetailState.Error -> {
-                    Text(currentState.message)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(currentState.message)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { 
+                            viewModel.loadBusinessDetails(businessId)
+                        }) {
+                            Text(stringResource(id = R.string.try_again))
+                        }
+                    }
                 }
             }
         }
@@ -583,6 +648,32 @@ fun NavGraph(navController: NavHostController) {
                     Text(currentState.message)
                 }
             }
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onBackClick = { navController.popBackStack() },
+                onLanguageClick = { navController.navigate(Screen.LanguageSettings.route) },
+                onLogoutClick = { 
+                    FirebaseAuth.getInstance().signOut()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Screen.LanguageSettings.route) {
+            val context = LocalContext.current
+            LanguageSettingsScreen(
+                onBackClick = { navController.popBackStack() },
+                onLanguageChanged = {
+                    // Dil değiştirildiğinde aktiviteyi yeniden başlat
+                    val intent = Intent(context, MainActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    context.startActivity(intent)
+                }
+            )
         }
     }
 } 

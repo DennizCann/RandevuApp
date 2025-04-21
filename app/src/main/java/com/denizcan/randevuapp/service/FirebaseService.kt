@@ -12,6 +12,8 @@ import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.Instant
 import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 
 class FirebaseService {
     private val auth = FirebaseAuth.getInstance()
@@ -122,21 +124,33 @@ class FirebaseService {
     }
 
     suspend fun updateWorkingHours(
-        businessId: String,
+        businessId: String, 
         workingDays: List<String>,
         workingHours: User.WorkingHours
     ) {
         try {
-            firestore.collection("businesses")
+            // Hata ayıklama için log ekleyelim
+            Log.d("FirebaseService", "İşletme ID: $businessId")
+            Log.d("FirebaseService", "Çalışma günleri: $workingDays")
+            Log.d("FirebaseService", "Çalışma saatleri: $workingHours")
+            
+            val businessRef = FirebaseFirestore.getInstance()
+                .collection("businesses")
                 .document(businessId)
-                .update(
-                    mapOf(
-                        "workingDays" to workingDays,
-                        "workingHours" to workingHours,
-                    )
-                )
-                .await()
+            
+            // Farklı bir yaklaşım deneyelim - daha basit bir güncelleme
+            val updates = hashMapOf<String, Any>(
+                "workingDays" to workingDays,
+                "workingHours.opening" to workingHours.opening,
+                "workingHours.closing" to workingHours.closing,
+                "workingHours.slotDuration" to workingHours.slotDuration
+            )
+            
+            businessRef.update(updates).await()
+            
+            Log.d("FirebaseService", "Çalışma saatleri başarıyla güncellendi")
         } catch (e: Exception) {
+            Log.e("FirebaseService", "Çalışma saatleri güncellenemedi: ${e.message}", e)
             throw e
         }
     }
@@ -414,6 +428,23 @@ class FirebaseService {
         } catch (e: Exception) {
             Log.e("FirebaseService", "Müşteri verisi kaydedilemedi: ${e.message}", e)
             throw e
+        }
+    }
+
+    suspend fun getAppointmentsForBusiness(businessId: String): List<Appointment> {
+        try {
+            val appointmentsRef = Firebase.firestore.collection("appointments")
+                .whereEqualTo("businessId", businessId)
+            
+            val querySnapshot = appointmentsRef.get().await()
+            return querySnapshot.documents.mapNotNull { document ->
+                document.toObject(Appointment::class.java)?.apply {
+                    id = document.id
+                }
+            }
+        } catch (e: Exception) {
+            println("İşletme randevuları alınırken hata: ${e.message}")
+            return emptyList()
         }
     }
 } 

@@ -1,5 +1,6 @@
 package com.denizcan.randevuapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.denizcan.randevuapp.model.User
@@ -55,6 +56,97 @@ class BusinessHomeViewModel : ViewModel() {
     private val _appointmentRequestsState = MutableStateFlow<AppointmentRequestsState>(AppointmentRequestsState.Loading)
     val appointmentRequestsState = _appointmentRequestsState.asStateFlow()
 
+    private val _workingHoursState = MutableStateFlow<WorkingHoursState>(WorkingHoursState.Loading)
+    val workingHoursState = _workingHoursState.asStateFlow()
+
+    sealed class WorkingHoursState {
+        object Loading : WorkingHoursState()
+        data class Success(
+            val message: String,
+            val workingDays: List<String>,
+            val workingHours: User.WorkingHours
+        ) : WorkingHoursState()
+        data class Error(val message: String) : WorkingHoursState()
+    }
+
+    // İki ayrı güncelleme metodu ve bir kaydetme metodu
+    private var updatedWorkingDays: List<String>? = null
+    private var updatedWorkingHours: User.WorkingHours? = null
+
+    fun updateWorkingDays(days: List<String>) {
+        updatedWorkingDays = days
+    }
+
+    fun updateWorkingHours(hours: User.WorkingHours) {
+        updatedWorkingHours = hours
+    }
+
+    fun saveWorkingHoursAndDays() {
+        viewModelScope.launch {
+            try {
+                val days = updatedWorkingDays ?: return@launch
+                val hours = updatedWorkingHours ?: return@launch
+                
+                _workingHoursState.value = WorkingHoursState.Loading
+                
+                // Firebase'e kaydetmeyi dene
+                try {
+                    firebaseService.updateWorkingHours(
+                        businessId = currentBusinessId ?: "",
+                        workingDays = days,
+                        workingHours = hours
+                    )
+                    
+                    // Başarı durumunu ayarla
+                    _workingHoursState.value = WorkingHoursState.Success(
+                        message = "Çalışma saatleri başarıyla güncellendi",
+                        workingDays = days,
+                        workingHours = hours
+                    )
+                    
+                    // Yerel veriye ayarla (Firebase başarısız olsa bile UI güncellensin)
+                    val currentState = _uiState.value
+                    if (currentState is BusinessHomeState.Success) {
+                        val updatedBusiness = currentState.business.copy(
+                            workingDays = days,
+                            workingHours = hours
+                        )
+                        _uiState.value = BusinessHomeState.Success(
+                            business = updatedBusiness,
+                            pendingAppointments = currentState.pendingAppointments
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("BusinessHomeViewModel", "Firebase güncelleme hatası: ${e.message}")
+                    
+                    // Yine de yerel olarak güncelle (offline işlem)
+                    val currentState = _uiState.value
+                    if (currentState is BusinessHomeState.Success) {
+                        val updatedBusiness = currentState.business.copy(
+                            workingDays = days,
+                            workingHours = hours
+                        )
+                        _uiState.value = BusinessHomeState.Success(
+                            business = updatedBusiness,
+                            pendingAppointments = currentState.pendingAppointments
+                        )
+                        
+                        // Offline başarı durumu
+                        _workingHoursState.value = WorkingHoursState.Success(
+                            message = "Çalışma saatleri yerel olarak güncellendi (offline mod)",
+                            workingDays = days,
+                            workingHours = hours
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _workingHoursState.value = WorkingHoursState.Error(
+                    message = "Çalışma saatleri güncellenirken hata oluştu: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun loadBusinessData(businessId: String) {
         currentBusinessId = businessId  // ID'yi sakla
         viewModelScope.launch {
@@ -79,14 +171,41 @@ class BusinessHomeViewModel : ViewModel() {
     fun updateWorkingHours(workingDays: List<String>, workingHours: User.WorkingHours) {
         viewModelScope.launch {
             try {
-                currentBusinessId?.let { businessId ->
-                    _uiState.value = BusinessHomeState.Loading
-                    firebaseService.updateWorkingHours(businessId, workingDays, workingHours)
-                    // Güncel verileri yükle
-                    loadBusinessData(businessId)
-                }
+                // İstek göndermeden önce yükleniyor durumunu ayarla
+                _workingHoursState.value = WorkingHoursState.Loading
+                
+                // Güncellenmiş çalışma saatleri
+                val updatedWorkingHours = User.WorkingHours(
+                    opening = workingHours.opening,
+                    closing = workingHours.closing,
+                    slotDuration = workingHours.slotDuration
+                )
+                
+                // Log ekleyelim
+                Log.d("BusinessHomeViewModel", "Güncellenecek çalışma günleri: $workingDays")
+                Log.d("BusinessHomeViewModel", "Güncellenecek çalışma saatleri: $updatedWorkingHours")
+                
+                // Firebase'e kaydet
+                firebaseService.updateWorkingHours(
+                    businessId = currentBusinessId ?: "",
+                    workingDays = workingDays,
+                    workingHours = updatedWorkingHours
+                )
+                
+                // Business nesnesini güncelle (load Business fonksiyonu çağrılabilir veya yerel state'i güncelleyebiliriz)
+                loadBusinessData(currentBusinessId ?: "")
+                
+                // Success state'e güncelle
+                _workingHoursState.value = WorkingHoursState.Success(
+                    message = "Çalışma saatleri başarıyla güncellendi",
+                    workingDays = workingDays,
+                    workingHours = updatedWorkingHours
+                )
             } catch (e: Exception) {
-                _uiState.value = BusinessHomeState.Error(e.message ?: "Çalışma saatleri güncellenemedi")
+                Log.e("BusinessHomeViewModel", "Çalışma saatleri güncellenirken hata: ${e.message}")
+                _workingHoursState.value = WorkingHoursState.Error(
+                    message = "Çalışma saatleri güncellenirken hata oluştu: ${e.message}"
+                )
             }
         }
     }

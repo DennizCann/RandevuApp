@@ -5,8 +5,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +29,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Randevu Uygulaması",
+            text = stringResource(id = R.string.login),
             style = MaterialTheme.typography.headlineMedium
         )
         
@@ -40,21 +42,21 @@ fun LoginScreen(
                 onClick = { if (isBusinessLogin) onSwitchLoginType() },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
             ) {
-                Text("Müşteri")
+                Text(stringResource(id = R.string.customer))
             }
             SegmentedButton(
                 selected = isBusinessLogin,
                 onClick = { if (!isBusinessLogin) onSwitchLoginType() },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
             ) {
-                Text("İşletme")
+                Text(stringResource(id = R.string.business))
             }
         }
         
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("E-posta") },
+            label = { Text(stringResource(id = R.string.email)) },
             singleLine = true
         )
         
@@ -63,7 +65,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Şifre") },
+            label = { Text(stringResource(id = R.string.password)) },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true
         )
@@ -74,11 +76,11 @@ fun LoginScreen(
             onClick = { onLoginClick(email, password) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Giriş Yap")
+            Text(stringResource(id = R.string.login))
         }
         
         TextButton(onClick = onRegisterClick) {
-            Text("Hesap Oluştur")
+            Text(stringResource(id = R.string.no_account))
         }
     }
 } 

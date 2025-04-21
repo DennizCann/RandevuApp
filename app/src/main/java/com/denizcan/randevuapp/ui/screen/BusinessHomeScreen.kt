@@ -2,6 +2,8 @@ package com.denizcan.randevuapp.ui.screen
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -9,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.MainActivity
+import com.denizcan.randevuapp.R
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -18,6 +22,7 @@ fun BusinessHomeScreen(
     onWorkingHoursClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onRequestsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     Column(
@@ -26,6 +31,18 @@ fun BusinessHomeScreen(
             .padding(16.dp)
     ) {
         // Üst Bar
+        TopAppBar(
+            title = { Text(stringResource(id = R.string.app_name)) },
+            actions = {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(id = R.string.settings)
+                    )
+                }
+            }
+        )
+
         Text(
             text = businessName,
             style = MaterialTheme.typography.headlineMedium
@@ -43,7 +60,7 @@ fun BusinessHomeScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Bekleyen Randevular",
+                    text = stringResource(id = R.string.pending_appointments),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -60,7 +77,7 @@ fun BusinessHomeScreen(
             onClick = onWorkingHoursClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Çalışma Saatleri")
+            Text(stringResource(id = R.string.working_hours))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -69,7 +86,7 @@ fun BusinessHomeScreen(
             onClick = onCalendarClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Takvim")
+            Text(stringResource(id = R.string.appointments))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -78,7 +95,7 @@ fun BusinessHomeScreen(
             onClick = onRequestsClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Randevu Talepleri")
+            Text(stringResource(id = R.string.appointment_requests))
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -87,12 +104,12 @@ fun BusinessHomeScreen(
         val context = LocalContext.current
         OutlinedButton(
             onClick = {
-                Log.d("BusinessHomeScreen", "Çıkış butonuna basıldı")
+                Log.d("BusinessHomeScreen", "Logout button was pressed")
                 MainActivity.logout(context)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Çıkış Yap")
+            Text(stringResource(id = R.string.logout))
         }
     }
 } 

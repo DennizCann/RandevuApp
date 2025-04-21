@@ -140,12 +140,14 @@ private fun TimeSlotCard(
                             AppointmentStatus.PENDING -> "⏳ Beklemede"
                             AppointmentStatus.CANCELLED -> "✕ İptal Edildi"
                             AppointmentStatus.BLOCKED -> "🔒 Kapatıldı"
+                            AppointmentStatus.COMPLETED -> "✅ Tamamlanmış"
                         },
                         color = when (appointment.status) {
                             AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primary
                             AppointmentStatus.PENDING -> MaterialTheme.colorScheme.secondary
                             AppointmentStatus.CANCELLED -> MaterialTheme.colorScheme.error
                             AppointmentStatus.BLOCKED -> MaterialTheme.colorScheme.outline
+                            AppointmentStatus.COMPLETED -> MaterialTheme.colorScheme.secondary
                         },
                         style = MaterialTheme.typography.bodyMedium
                     )
