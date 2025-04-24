@@ -14,6 +14,8 @@ import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.LocalDateTime
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class BusinessHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -81,68 +83,71 @@ class BusinessHomeViewModel : ViewModel() {
         updatedWorkingHours = hours
     }
 
-    fun saveWorkingHoursAndDays() {
+    fun saveWorkingHours() {
         viewModelScope.launch {
             try {
-                val days = updatedWorkingDays ?: return@launch
-                val hours = updatedWorkingHours ?: return@launch
-                
                 _workingHoursState.value = WorkingHoursState.Loading
                 
-                // Firebase'e kaydetmeyi dene
-                try {
-                    firebaseService.updateWorkingHours(
-                        businessId = currentBusinessId ?: "",
-                        workingDays = days,
-                        workingHours = hours
-                    )
-                    
-                    // Başarı durumunu ayarla
-                    _workingHoursState.value = WorkingHoursState.Success(
-                        message = "Çalışma saatleri başarıyla güncellendi",
-                        workingDays = days,
-                        workingHours = hours
-                    )
-                    
-                    // Yerel veriye ayarla (Firebase başarısız olsa bile UI güncellensin)
-                    val currentState = _uiState.value
-                    if (currentState is BusinessHomeState.Success) {
-                        val updatedBusiness = currentState.business.copy(
-                            workingDays = days,
-                            workingHours = hours
-                        )
-                        _uiState.value = BusinessHomeState.Success(
-                            business = updatedBusiness,
-                            pendingAppointments = currentState.pendingAppointments
-                        )
-                    }
-                } catch (e: Exception) {
-                    Log.e("BusinessHomeViewModel", "Firebase güncelleme hatası: ${e.message}")
-                    
-                    // Yine de yerel olarak güncelle (offline işlem)
-                    val currentState = _uiState.value
-                    if (currentState is BusinessHomeState.Success) {
-                        val updatedBusiness = currentState.business.copy(
-                            workingDays = days,
-                            workingHours = hours
-                        )
-                        _uiState.value = BusinessHomeState.Success(
-                            business = updatedBusiness,
-                            pendingAppointments = currentState.pendingAppointments
-                        )
-                        
-                        // Offline başarı durumu
-                        _workingHoursState.value = WorkingHoursState.Success(
-                            message = "Çalışma saatleri yerel olarak güncellendi (offline mod)",
-                            workingDays = days,
-                            workingHours = hours
-                        )
-                    }
+                // İşletme ID'si kontrolü
+                val businessId = currentBusinessId
+                if (businessId == null) {
+                    _workingHoursState.value = WorkingHoursState.Error("İşletme ID'si bulunamadı")
+                    return@launch
                 }
-            } catch (e: Exception) {
-                _workingHoursState.value = WorkingHoursState.Error(
-                    message = "Çalışma saatleri güncellenirken hata oluştu: ${e.message}"
+                
+                // Kaydetmeden önce veri doğrulaması
+                val workingDays = updatedWorkingDays
+                if (workingDays.isNullOrEmpty()) {
+                    _workingHoursState.value = WorkingHoursState.Error("En az bir çalışma günü seçmelisiniz")
+                    return@launch
+                }
+                
+                val workingHours = updatedWorkingHours
+                if (workingHours == null || workingHours.opening.isEmpty() || workingHours.closing.isEmpty()) {
+                    _workingHoursState.value = WorkingHoursState.Error("Açılış ve kapanış saatleri gereklidir")
+                    return@launch
+                }
+                
+                // Non-nullable değerler ile Map oluşturma
+                val workingHoursData = mapOf<String, Any>(
+                    "opening" to workingHours.opening,
+                    "closing" to workingHours.closing,
+                    "slotDuration" to workingHours.slotDuration
                 )
+                
+                // Doğru veri formatlama (Any? -> Any dönüşümü yaparak)
+                val dataToUpdate = mapOf<String, Any>(
+                    "workingDays" to workingDays,
+                    "workingHours" to workingHoursData
+                )
+                
+                // Detaylı loglama
+                Log.d("BusinessHome", "Kaydedilecek veriler: $dataToUpdate")
+                Log.d("BusinessHome", "BusinessID: $businessId")
+                
+                // Veri tabanına kaydet - nullable olmayan Map kullanarak
+                firebaseService.updateBusinessData(businessId, dataToUpdate)
+                
+                // İşletmeyi tekrar yükle
+                loadBusinessData(businessId)
+                
+                _workingHoursState.value = WorkingHoursState.Success(
+                    message = "Çalışma saatleri başarıyla kaydedildi",
+                    workingDays = workingDays,
+                    workingHours = workingHours
+                )
+                
+                // Kaydettikten sonra veritabanından tekrar alarak doğrulama
+                val updatedDoc = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(businessId)
+                    .get().await()
+                
+                Log.d("BusinessHome", "Kaydedilen veri (doğrulama): ${updatedDoc.data}")
+                
+            } catch (e: Exception) {
+                Log.e("BusinessHome", "Çalışma saatleri kaydedilemedi", e)
+                _workingHoursState.value = WorkingHoursState.Error("Çalışma saatleri kaydedilemedi: ${e.message}")
             }
         }
     }

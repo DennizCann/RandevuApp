@@ -89,7 +89,7 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Şifre Tekrar") },
+                label = { Text(stringResource(id = R.string.confirm_password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()

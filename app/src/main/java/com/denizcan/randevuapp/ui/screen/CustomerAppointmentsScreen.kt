@@ -7,13 +7,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.R
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
 import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.format.DateTimeFormatter
-import java.util.*
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +27,7 @@ fun CustomerAppointmentsScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Randevularım",
+                title = stringResource(id = R.string.my_appointments_title),
                 onBackClick = onBackClick
             )
         }
@@ -33,7 +35,7 @@ fun CustomerAppointmentsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Scaffold padding'lerini uygula
+                .padding(paddingValues)
                 .padding(16.dp)
         ) {
             if (appointments.isEmpty()) {
@@ -41,7 +43,7 @@ fun CustomerAppointmentsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Henüz randevunuz bulunmuyor")
+                    Text(stringResource(id = R.string.no_appointments_yet))
                 }
             } else {
                 LazyColumn(
@@ -65,6 +67,8 @@ private fun AppointmentCard(
     appointment: Appointment,
     onCancelAppointment: (String) -> Unit
 ) {
+    val currentLocale = LocalContext.current.resources.configuration.locales.get(0)
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -82,33 +86,41 @@ private fun AppointmentCard(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Tarih: ${appointment.dateTime.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("tr")))}",
+                text = stringResource(
+                    id = R.string.date,
+                    appointment.dateTime.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy", currentLocale))
+                ),
                 style = MaterialTheme.typography.titleMedium
             )
             
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Saat: ${appointment.dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}",
+                text = stringResource(
+                    id = R.string.time,
+                    appointment.dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
             
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "İşletme: ${appointment.businessId}", // TODO: İşletme adını göster
+                text = stringResource(
+                    id = R.string.business,
+                    appointment.businessName.ifEmpty { appointment.businessId }
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
             
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Randevu durumu
-            val statusText = when (appointment.status) {
-                AppointmentStatus.PENDING -> "Onay Bekliyor"
-                AppointmentStatus.CONFIRMED -> "Onaylandı"
-                AppointmentStatus.CANCELLED -> "İptal Edildi"
-                AppointmentStatus.COMPLETED -> "Tamamlandı"
-                AppointmentStatus.BLOCKED -> "Bloke Edildi"
+            val statusTextId = when (appointment.status) {
+                AppointmentStatus.PENDING -> R.string.status_pending
+                AppointmentStatus.CONFIRMED -> R.string.status_confirmed
+                AppointmentStatus.CANCELLED -> R.string.status_cancelled
+                AppointmentStatus.COMPLETED -> R.string.status_completed
+                AppointmentStatus.BLOCKED -> R.string.status_blocked
             }
             
             val statusColor = when (appointment.status) {
@@ -120,12 +132,11 @@ private fun AppointmentCard(
             }
             
             Text(
-                text = statusText,
+                text = stringResource(id = statusTextId),
                 color = statusColor,
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            // Sadece CONFIRMED randevular için iptal butonu göster
             if (appointment.status == AppointmentStatus.CONFIRMED) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -136,7 +147,7 @@ private fun AppointmentCard(
                     ),
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Randevuyu İptal Et")
+                    Text(stringResource(id = R.string.cancel_appointment))
                 }
             }
         }

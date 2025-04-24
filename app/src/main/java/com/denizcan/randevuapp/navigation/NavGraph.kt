@@ -59,6 +59,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -97,6 +99,7 @@ sealed class Screen(val route: String) {
     object CustomerAppointments : Screen("customer_appointments")
     object LanguageSettings : Screen("language_settings")
     object Settings : Screen("settings")
+    object AppointmentConfirmation : Screen("appointment_confirmation")
 }
 
 @Composable
@@ -411,8 +414,8 @@ fun NavGraph(navController: NavHostController) {
                             viewModel.updateWorkingHours(updatedHours)
                         },
                         onSaveClick = {
-                            // İki değeri de kullanarak çağrı yapın
-                            viewModel.saveWorkingHoursAndDays()
+                            // Burada adı 'saveWorkingHoursAndDays' yerine 'saveWorkingHours' olarak değiştirdik
+                            viewModel.saveWorkingHours()
                         },
                         onBackClick = {
                             navController.popBackStack()
@@ -452,7 +455,8 @@ fun NavGraph(navController: NavHostController) {
                         },
                         onBackClick = {
                             navController.navigateUp()
-                        }
+                        },
+                        navController = navController
                     )
                 }
                 is BusinessListState.Error -> {
@@ -474,22 +478,22 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(
-            route = Screen.BusinessDetail.route,
+            route = "business_detail/{businessId}",
             arguments = listOf(navArgument("businessId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
+            val businessId = backStackEntry.arguments?.getString("businessId") ?: ""
+            Log.d("NavGraph", "BusinessDetail - işletme ID: '$businessId'")
+            
             val viewModel: BusinessDetailViewModel = viewModel()
-            val state = viewModel.uiState.collectAsState()
-            val currentUser = FirebaseAuth.getInstance().currentUser
-
-            // ID'yi debug edelim
+            val uiState = viewModel.uiState.collectAsState().value
+            
+            // İşletme detaylarını yükle
             LaunchedEffect(businessId) {
-                Log.d("NavGraph", "İşletme detay ekranı açılıyor, ID: $businessId")
                 viewModel.loadBusinessDetails(businessId)
             }
-
-            when (val currentState = state.value) {
-                is BusinessDetailState.Loading -> {
+            
+            when (uiState) {
+                is BusinessDetailViewModel.BusinessDetailState.Loading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -497,40 +501,71 @@ fun NavGraph(navController: NavHostController) {
                         CircularProgressIndicator()
                     }
                 }
-                is BusinessDetailState.Success -> {
+                
+                is BusinessDetailViewModel.BusinessDetailState.Success -> {
+                    val business = uiState.business
+                    val availableSlots = uiState.availableSlots
+                    val selectedDate = uiState.selectedDate
+                    
                     BusinessDetailScreen(
-                        business = currentState.business,
-                        availableSlots = currentState.availableSlots,
-                        selectedDate = currentState.selectedDate,
+                        business = business,
+                        availableSlots = availableSlots,
+                        selectedDate = selectedDate,
                         onDateSelect = viewModel::updateSelectedDate,
                         onTimeSelect = viewModel::updateSelectedTime,
                         onNoteChange = viewModel::updateNote,
-                        onAppointmentRequest = { 
-                            currentUser?.let { user ->
-                                viewModel.createAppointment(user.uid)
-                                navController.navigateUp()
+                        onAppointmentRequest = {
+                            // Kullanıcı ID'si gerekliyse
+                            val currentUser = FirebaseAuth.getInstance().currentUser
+                            if (currentUser != null) {
+                                // Önce appointment'ı oluştur
+                                viewModel.createAppointment(currentUser.uid)
+                                
+                                // Sonra navigasyon yap (callback olmadan)
+                                navController.navigate(Screen.AppointmentConfirmation.route) {
+                                    popUpTo(Screen.BusinessList.route)
+                                }
                             }
                         },
                         onBackClick = {
-                            navController.navigateUp()
+                            navController.popBackStack()
                         },
                         isLoading = false
                     )
                 }
-                is BusinessDetailState.Error -> {
+                
+                is BusinessDetailViewModel.BusinessDetailState.Error -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text(currentState.message)
+                        Text(
+                            text = uiState.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { 
-                            viewModel.loadBusinessDetails(businessId)
-                        }) {
+                        
+                        Button(
+                            onClick = {
+                                viewModel.loadBusinessDetails(businessId)
+                            }
+                        ) {
                             Text(stringResource(id = R.string.try_again))
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        OutlinedButton(
+                            onClick = {
+                                navController.popBackStack()
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.back))
                         }
                     }
                 }

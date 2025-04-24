@@ -447,4 +447,27 @@ class FirebaseService {
             return emptyList()
         }
     }
+
+    suspend fun updateBusinessData(businessId: String, data: Map<String, Any>) {
+        try {
+            Log.d("FirebaseService", "İşletme verisi güncelleniyor: businessId=$businessId, data=$data")
+            
+            // Önce belge var mı kontrol et
+            val docRef = firestore.collection("users").document(businessId)
+            val doc = docRef.get().await()
+            
+            if (!doc.exists()) {
+                Log.w("FirebaseService", "İşletme belgesi bulunamadı: $businessId")
+                throw Exception("İşletme bulunamadı")
+            }
+            
+            // Veriyi güncelle
+            docRef.update(data).await()
+            
+            Log.d("FirebaseService", "İşletme verisi başarıyla güncellendi")
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "İşletme verisi güncellenirken hata", e)
+            throw e
+        }
+    }
 } 

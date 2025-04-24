@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Appointment App</string>
     <string name="login">Login</string>
-    <string name="register">Sign Up</string>
+    <string name="register">Register</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="customer">Customer</string>
@@ -21,7 +21,7 @@
     <string name="working_days">Working Days</string>
     <string name="no_account">Don\'t have an account?</string>
     <string name="have_account">Already have an account?</string>
-    <string name="logout">Log out</string>
+    <string name="logout">Logout</string>
     <string name="profile">Profile</string>
     <string name="appointments">Appointments</string>
     <string name="reset_to_system">Reset to System Language</string>
@@ -78,4 +78,33 @@
     <string name="pending">Pending</string>
     <string name="cancelled">Cancelled</string>
     <string name="no_appointments">No appointments</string>
+    <string name="total_businesses">Total %1$d businesses (%2$d displayed)</string>
+    <string name="business_list_empty">Debug: business list is empty</string>
+    <string name="no_business_sector">Debug: No businesses found in \'%1$s\' sector</string>
+    <string name="no_business_all_sectors">Debug: No businesses found in any sector</string>
+    <string name="no_business_found">No business found</string>
+    <string name="my_appointments_title">My Appointments</string>
+    <string name="date">Date: %s</string>
+    <string name="time">Time: %s</string>
+    <string name="no_appointments_yet">You don\'t have any appointments yet</string>
+    <string name="cancel_appointment">Cancel Appointment</string>
+    <string name="status_pending">Awaiting Confirmation</string>
+    <string name="status_confirmed">Confirmed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_blocked">Blocked</string>
+    <string name="business_details">Business Details</string>
+    <string name="working_hours_full">Working Hours: %s - %s</string>
+    <string name="appointment_duration">Appointment Duration: %d minutes</string>
+    <string name="working_days_colon">Working Days:</string>
+    <string name="select_slot_request">Please select a time slot:</string>
+    <string name="no_slots_available">No appointment slots available for this day</string>
+    <string name="appointment_note_hint">Add a note for your appointment (optional)</string>
+    <string name="request_appointment">Request Appointment</string>
+    <string name="selected_date_time">Selected: %s, %s</string>
+    <string name="select_date_first">Please select a date first</string>
+    <string name="select_time_first">Please select a time slot</string>
+    <string name="closed_on_selected_day">Business is closed on the selected day</string>
+    <string name="phone_number">Phone: %s</string>
+    <string name="address_colon">Address: %s</string>
 </resources>

@@ -39,57 +39,109 @@ class BusinessDetailViewModel : ViewModel() {
     }
 
     fun loadBusinessDetails(businessId: String) {
+        // Hatalı boş ID kontrol et
+        if (businessId.isBlank()) {
+            Log.e("BusinessDetail", "İşletme ID'si boş veya geçersiz")
+            _uiState.value = BusinessDetailState.Error("Geçersiz işletme ID'si")
+            return
+        }
+
+        Log.d("BusinessDetail", "İşletme detayları yükleniyor - ID: '$businessId'")
+
         viewModelScope.launch {
             try {
                 _uiState.value = BusinessDetailState.Loading
                 
-                Log.d("BusinessDetail", "İşletme detayları yükleniyor, ID: $businessId")
+                // İlk olarak "users" koleksiyonunda ara
+                var businessDoc = db.collection("users").document(businessId).get().await()
                 
-                // Kolay debug için önce tüm kullanıcıları al
-                val allUsers = db.collection("users").get().await()
-                Log.d("BusinessDetail", "Tüm kullanıcı sayısı: ${allUsers.size()}")
-                
-                // İşletme ID'si var mı kontrol et
-                val foundUser = allUsers.documents.find { it.id == businessId }
-                if (foundUser != null) {
-                    Log.d("BusinessDetail", "İşletme veritabanında bulundu: $businessId")
-                    Log.d("BusinessDetail", "İşletme verisi: ${foundUser.data}")
-                } else {
-                    Log.w("BusinessDetail", "Bu ID ile kullanıcı bulunamadı: $businessId")
-                    
-                    // Tüm belge ID'lerini logla
-                    Log.d("BusinessDetail", "Mevcut belge ID'leri:")
-                    allUsers.documents.forEach { 
-                        Log.d("BusinessDetail", "Belge ID: ${it.id}") 
-                    }
+                // Bulunamazsa "businesses" koleksiyonunda da dene
+                if (!businessDoc.exists()) {
+                    Log.d("BusinessDetail", "users koleksiyonunda bulunamadı, businesses koleksiyonunda aranıyor")
+                    businessDoc = db.collection("businesses").document(businessId).get().await()
                 }
                 
-                // İşletmeyi global değişkene atama eklendi
+                // Debug için belge verilerini göster
+                if (businessDoc.exists()) {
+                    Log.d("BusinessDetail", "İşletme belgesi bulundu: ${businessDoc.id}")
+                    Log.d("BusinessDetail", "Belge verileri: ${businessDoc.data}")
+                } else {
+                    Log.e("BusinessDetail", "İşletme belgesi bulunamadı! ID: $businessId")
+                    _uiState.value = BusinessDetailState.Error("İşletme bulunamadı (Belge mevcut değil)")
+                    return@launch
+                }
+                
+                // Veri alanlarını doğru şekilde oku
+                val businessName = businessDoc.getString("businessName") ?: businessDoc.getString("name") ?: ""
+                val address = businessDoc.getString("address") ?: ""
+                val phone = businessDoc.getString("phone") ?: ""
+                val sector = businessDoc.getString("sector") ?: ""
+                
+                if (businessName.isEmpty()) {
+                    Log.w("BusinessDetail", "İşletme adı boş: ${businessDoc.id}")
+                }
+                
+                // Çalışma günleri
+                var workingDays = emptyList<String>()
+                val workingDaysRaw = businessDoc.get("workingDays")
+                if (workingDaysRaw != null) {
+                    workingDays = when (workingDaysRaw) {
+                        is List<*> -> workingDaysRaw.filterIsInstance<String>()
+                        else -> emptyList()
+                    }
+                } else {
+                    Log.w("BusinessDetail", "Çalışma günleri bulunamadı, varsayılan günler kullanılıyor")
+                    workingDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY")
+                }
+                
+                // Çalışma saatleri
+                var opening = "09:00"
+                var closing = "17:00"
+                var slotDuration = 30
+                
+                try {
+                    val workingHoursMap = businessDoc.get("workingHours") as? Map<*, *>
+                    if (workingHoursMap != null) {
+                        opening = workingHoursMap["opening"] as? String ?: opening
+                        closing = workingHoursMap["closing"] as? String ?: closing
+                        slotDuration = (workingHoursMap["slotDuration"] as? Number)?.toInt() ?: slotDuration
+                    } else {
+                        Log.w("BusinessDetail", "Çalışma saatleri bulunamadı, varsayılan saatler kullanılıyor")
+                    }
+                } catch (e: Exception) {
+                    Log.e("BusinessDetail", "Çalışma saatleri ayrıştırma hatası", e)
+                }
+                
+                val workingHours = User.WorkingHours(opening, closing, slotDuration)
+                
+                // İşletme nesnesi oluştur
                 val business = User.Business(
                     id = businessId,
-                    businessName = "Berber Osman",
-                    address = "İstanbul",
-                    phone = "0123456789",
-                    sector = "Berber",
-                    workingDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "SATURDAY", "SUNDAY"),
-                    workingHours = User.WorkingHours("07:00", "16:00", 15)
+                    businessName = businessName,
+                    address = address,
+                    phone = phone,
+                    sector = sector,
+                    workingDays = workingDays,
+                    workingHours = workingHours
                 )
                 
-                // Global değişkene kaydet - bu çok önemli!
+                Log.d("BusinessDetail", "İşletme modeli oluşturuldu: $business")
+                
+                // Global değişkene kaydet
                 currentBusiness = business
                 
-                // Gerçek slot hesaplaması için
+                // Başlangıç tarihi için uygun slotları hesapla
                 val currentDate = LocalDate.now()
                 val availableSlots = calculateAvailableSlots(business, currentDate, emptyList())
                 
-                // Başarılı durumu güncelle
+                Log.d("BusinessDetail", "Hesaplanan slotlar: $availableSlots")
+                
+                // UI state'i güncelle
                 _uiState.value = BusinessDetailState.Success(
                     business = business,
                     availableSlots = availableSlots,
                     selectedDate = currentDate
                 )
-                
-                Log.d("BusinessDetail", "Test verileri ile sayfa yüklendi")
                 
             } catch (e: Exception) {
                 Log.e("BusinessDetail", "İşletme detayları yüklenirken hata", e)

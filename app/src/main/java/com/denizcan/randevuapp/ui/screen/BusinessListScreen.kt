@@ -1,5 +1,6 @@
 package com.denizcan.randevuapp.ui.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.R
 import com.denizcan.randevuapp.model.User
 import com.denizcan.randevuapp.ui.components.AppTopBar
+import androidx.navigation.NavController
+import com.denizcan.randevuapp.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,7 +22,8 @@ fun BusinessListScreen(
     businesses: List<User.Business>,
     sectors: List<String>,
     onBusinessClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    navController: NavController
 ) {
     var selectedSector by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
@@ -98,13 +102,13 @@ fun BusinessListScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Toplam işletme: ${businesses.size}, Filtrelenmiş: ${filteredBusinesses.size}",
+                text = stringResource(id = R.string.total_businesses, businesses.size, filteredBusinesses.size),
                 style = MaterialTheme.typography.bodySmall
             )
 
             if (businesses.isEmpty()) {
                 Text(
-                    text = "Debug: businesses listesi boş",
+                    text = stringResource(id = R.string.business_list_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -113,13 +117,13 @@ fun BusinessListScreen(
             if (filteredBusinesses.isEmpty()) {
                 if (selectedSector != null && selectedSector != "") {
                     Text(
-                        text = "Debug: '$selectedSector' sektöründe işletme bulunamadı",
+                        text = stringResource(id = R.string.no_business_sector, selectedSector ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
                 } else {
                     Text(
-                        text = "Debug: Tüm sektörlerde işletme bulunamadı",
+                        text = stringResource(id = R.string.no_business_all_sectors),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -137,7 +141,7 @@ fun BusinessListScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "İşletme bulunamadı",
+                        text = stringResource(id = R.string.no_business_found),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -148,7 +152,8 @@ fun BusinessListScreen(
                     items(filteredBusinesses) { business ->
                         BusinessCard(
                             business = business,
-                            onClick = { onBusinessClick(business.id) }
+                            onClick = { onBusinessClick(business.id) },
+                            navController = navController
                         )
                     }
                 }
@@ -161,13 +166,16 @@ fun BusinessListScreen(
 @Composable
 fun BusinessCard(
     business: User.Business,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    navController: NavController
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        onClick = onClick
+            .padding(vertical = 4.dp)
+            .clickable {
+                onClick()
+            }
     ) {
         Column(
             modifier = Modifier
