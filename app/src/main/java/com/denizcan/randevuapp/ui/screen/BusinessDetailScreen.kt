@@ -82,14 +82,14 @@ fun BusinessDetailScreen(
                     Column {
                         if (business.address.isNotEmpty()) {
                             Text(
-                                text = "Address: ${business.address}",
+                                text = stringResource(R.string.address_colon, business.address),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
                         
                         if (business.phone.isNotEmpty()) {
                             Text(
-                                text = "Phone: ${business.phone}",
+                                text = stringResource(R.string.phone_number, business.phone),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -102,7 +102,7 @@ fun BusinessDetailScreen(
             // Date Selection
             item {
                 Text(
-                    text = "Select Date",
+                    text = stringResource(R.string.select_date),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -161,7 +161,7 @@ fun BusinessDetailScreen(
             // Time Selection
             item {
                 Text(
-                    text = "Select Time",
+                    text = stringResource(R.string.select_time),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -169,7 +169,7 @@ fun BusinessDetailScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "Available Slots",
+                    text = stringResource(R.string.available_slots),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
@@ -188,9 +188,9 @@ fun BusinessDetailScreen(
                     ) {
                         Text(
                             text = if (isWorkingDay) 
-                                "No appointment slots available for this day"
+                                stringResource(R.string.no_slots_available)
                             else 
-                                "Business is closed on the selected day",
+                                stringResource(R.string.closed_on_selected_day),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -220,7 +220,7 @@ fun BusinessDetailScreen(
             // Appointment Note
             item {
                 Text(
-                    text = "Appointment Note",
+                    text = stringResource(R.string.note),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -233,7 +233,7 @@ fun BusinessDetailScreen(
                         appointmentNote = it
                         onNoteChange(it) 
                     },
-                    placeholder = { Text("Add a note for your appointment (optional)") },
+                    placeholder = { Text(stringResource(R.string.appointment_note_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -254,7 +254,7 @@ fun BusinessDetailScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Request Appointment")
+                        Text(stringResource(R.string.request_appointment))
                     }
                 }
             }
