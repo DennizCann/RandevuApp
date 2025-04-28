@@ -52,10 +52,10 @@ fun BusinessDetailScreen(
 ) {
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
     var appointmentNote by remember { mutableStateOf("") }
-    
+
     val today = LocalDate.now()
     val dateRange = generateDateRange(today, 14)
-    
+
     Scaffold(
         topBar = {
             AppTopBar(
@@ -86,7 +86,7 @@ fun BusinessDetailScreen(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        
+
                         if (business.phone.isNotEmpty()) {
                             Text(
                                 text = stringResource(R.string.phone_number, business.phone),
@@ -95,10 +95,10 @@ fun BusinessDetailScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
-            
+
             // Date Selection
             item {
                 Text(
@@ -106,15 +106,15 @@ fun BusinessDetailScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(dateRange) { date ->
                         val isSelected = date == selectedDate
-                        
+
                         // English day abbreviations
                         val dayName = when (date.dayOfWeek.toString()) {
                             "MONDAY" -> "Mon"
@@ -126,7 +126,7 @@ fun BusinessDetailScreen(
                             "SUNDAY" -> "Sun"
                             else -> ""
                         }
-                        
+
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
@@ -144,7 +144,7 @@ fun BusinessDetailScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isSelected) Color.White else Color.Black
                             )
-                            
+
                             Text(
                                 text = date.dayOfMonth.toString(),
                                 style = MaterialTheme.typography.bodyLarge,
@@ -154,10 +154,10 @@ fun BusinessDetailScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
-            
+
             // Time Selection
             item {
                 Text(
@@ -165,21 +165,21 @@ fun BusinessDetailScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = stringResource(R.string.available_slots),
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 if (availableSlots.isEmpty()) {
                     // Check if the selected day is a working day
                     val workingDayName = selectedDate.dayOfWeek.name
                     val isWorkingDay = business.workingDays.contains(workingDayName)
-                    
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -187,9 +187,9 @@ fun BusinessDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (isWorkingDay) 
+                            text = if (isWorkingDay)
                                 stringResource(R.string.no_slots_available)
-                            else 
+                            else
                                 stringResource(R.string.closed_on_selected_day),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
@@ -205,7 +205,7 @@ fun BusinessDetailScreen(
                             TimeSlotItem(
                                 slot = slot,
                                 isSelected = slot == selectedTimeSlot,
-                                onSelect = { 
+                                onSelect = {
                                     selectedTimeSlot = slot
                                     onTimeSelect(slot)
                                 }
@@ -213,10 +213,10 @@ fun BusinessDetailScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
-            
+
             // Appointment Note
             item {
                 Text(
@@ -224,23 +224,23 @@ fun BusinessDetailScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 OutlinedTextField(
                     value = appointmentNote,
-                    onValueChange = { 
+                    onValueChange = {
                         appointmentNote = it
-                        onNoteChange(it) 
+                        onNoteChange(it)
                     },
                     placeholder = { Text(stringResource(R.string.appointment_note_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
-            
+
             // Request Appointment Button
             item {
                 Button(
@@ -321,9 +321,9 @@ private fun DateCard(
             .width(72.dp)
             .height(80.dp),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primary 
-            else 
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primary
+            else
                 MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
@@ -348,17 +348,17 @@ private fun DateCard(
                     Locale("tr")
                 ),
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isSelected) 
-                    MaterialTheme.colorScheme.onPrimary 
-                else 
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimary
+                else
                     MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.titleLarge,
-                color = if (isSelected) 
-                    MaterialTheme.colorScheme.onPrimary 
-                else 
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimary
+                else
                     MaterialTheme.colorScheme.onSurface
             )
         }
@@ -381,7 +381,7 @@ private fun TimeSlotChip(
             else -> MaterialTheme.colorScheme.surface
         },
         border = BorderStroke(
-            1.dp, 
+            1.dp,
             when {
                 isSelected -> Color.Transparent
                 isInPast -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
@@ -401,9 +401,9 @@ private fun TimeSlotChip(
                     isInPast -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                     else -> MaterialTheme.colorScheme.onSurface
                 },
-                style = if (isInPast) 
+                style = if (isInPast)
                     MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic)
-                else 
+                else
                     MaterialTheme.typography.bodyMedium
             )
         }
@@ -424,23 +424,23 @@ private fun BusinessInfoSection(business: User.Business) {
                 text = business.businessName,
                 style = MaterialTheme.typography.headlineSmall
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = stringResource(id = R.string.address_colon, business.address),
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = stringResource(id = R.string.phone_number, business.phone),
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = stringResource(
                     id = R.string.working_hours_full,
@@ -449,7 +449,7 @@ private fun BusinessInfoSection(business: User.Business) {
                 ),
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             Text(
                 text = stringResource(
                     id = R.string.appointment_duration,
@@ -457,14 +457,14 @@ private fun BusinessInfoSection(business: User.Business) {
                 ),
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = stringResource(id = R.string.working_days_colon),
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             // İşletmenin çalışma günleri
             business.workingDays.forEach { day ->
                 val dayName = when (day) {
@@ -491,15 +491,15 @@ private fun DateSelectionSection(
 ) {
     val currentLocale = LocalContext.current.resources.configuration.locales.get(0)
     val dates = generateDateRange(LocalDate.now(), 14)
-    
+
     Column {
         Text(
             text = stringResource(id = R.string.select_date),
             style = MaterialTheme.typography.titleMedium
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -516,7 +516,7 @@ private fun DateSelectionSection(
                     !isWorkingDay -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
-                
+
                 Box(
                     modifier = Modifier
                         .size(width = 80.dp, height = 70.dp)
@@ -558,7 +558,7 @@ private fun TimeSlotSection(
     ) {
         items(availableSlots) { slot ->
             val isSelected = slot == selectedSlot
-            
+
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -574,7 +574,7 @@ private fun TimeSlotSection(
                     text = slot,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

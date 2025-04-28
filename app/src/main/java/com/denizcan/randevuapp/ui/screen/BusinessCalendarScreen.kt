@@ -76,10 +76,10 @@ fun BusinessCalendarScreen(
                 ) {
                     items(availableTimeSlots) { timeSlot ->
                         // Bu zaman diliminde randevu var mı kontrol et
-                        val appointment = appointments.find { 
-                            it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot 
+                        val appointment = appointments.find {
+                            it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot
                         }
-                        
+
                         TimeSlotCard(
                             timeSlot = timeSlot,
                             appointment = appointment,
@@ -160,19 +160,19 @@ private fun TimeSlotCard(
                     )
                 }
             }
-            
+
             if (appointment != null && appointment.status != AppointmentStatus.BLOCKED) {
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
                     text = appointment.customerName.ifEmpty { "İsimsiz Müşteri" },
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 // Eğer not varsa göster
                 if (appointment.note.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     Text(
                         text = "Not: ${appointment.note}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -180,9 +180,9 @@ private fun TimeSlotCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // İşlemler
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -56,6 +56,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -66,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.R
+import androidx.compose.ui.text.style.TextAlign
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -115,12 +117,12 @@ fun NavGraph(navController: NavHostController) {
     ) {
         composable(Screen.Login.route) {
             val isBusinessLogin = remember { mutableStateOf(false) }
-            
+
             LoginScreen(
                 onLoginClick = { email, password ->
                     authViewModel.signIn(email, password, isBusinessLogin.value)
                 },
-                onRegisterClick = { 
+                onRegisterClick = {
                     if (isBusinessLogin.value) {
                         navController.navigate(Screen.BusinessRegister.route)
                     } else {
@@ -130,7 +132,7 @@ fun NavGraph(navController: NavHostController) {
                 isBusinessLogin = isBusinessLogin.value,
                 onSwitchLoginType = { isBusinessLogin.value = !isBusinessLogin.value }
             )
-            
+
             LaunchedEffect(authState.value) {
                 when (val state = authState.value) {
                     is AuthViewModel.AuthState.Success -> {
@@ -176,7 +178,7 @@ fun NavGraph(navController: NavHostController) {
                 },
                 isBusinessRegister = false
             )
-            
+
             // Kayıt başarılı olduğunda kullanıcı bilgileri sayfasına yönlendir
             LaunchedEffect(authState.value) {
                 when (val state = authState.value) {
@@ -204,7 +206,7 @@ fun NavGraph(navController: NavHostController) {
                 },
                 isBusinessRegister = true
             )
-            
+
             // Kayıt başarılı olduğunda işletme bilgileri sayfasına yönlendir
             LaunchedEffect(authState.value) {
                 when (val state = authState.value) {
@@ -227,14 +229,14 @@ fun NavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            
+
             // ViewModel'i bu composable scope'unda tanımlayalım
             val userInfoViewModel: UserInfoViewModel = viewModel()
             val userInfoState = userInfoViewModel.userInfoState.collectAsState()
-            
+
             // Composable içinde kullanılacak coroutine scope
             val coroutineScope = rememberCoroutineScope()
-            
+
             CustomerInfoScreen(
                 onSaveClick = { fullName, phone ->
                     Log.d("NavGraph", "CustomerInfoScreen'den onSaveClick çağrıldı")
@@ -242,7 +244,7 @@ fun NavGraph(navController: NavHostController) {
                 },
                 userId = userId
             )
-            
+
             // State değişimini daha net bir şekilde izleyelim
             DisposableEffect(Unit) {
                 val job = coroutineScope.launch {  // viewModelScope yerine coroutineScope
@@ -257,7 +259,7 @@ fun NavGraph(navController: NavHostController) {
                         }
                     }
                 }
-                
+
                 onDispose {
                     job.cancel()
                 }
@@ -270,14 +272,14 @@ fun NavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val userInfoState = userInfoViewModel.userInfoState.collectAsState()
-            
+
             BusinessInfoScreen(
                 onSaveClick = { businessName, address, phone, sector ->
                     userInfoViewModel.saveBusinessInfo(userId, businessName, address, phone, sector)
                 },
                 userId = userId
             )
-            
+
             // İşletme bilgileri başarıyla kaydedildiğinde ana sayfaya yönlendir
             LaunchedEffect(key1 = userInfoState.value) {
                 when (val state = userInfoState.value) {
@@ -286,7 +288,7 @@ fun NavGraph(navController: NavHostController) {
                         navController.navigate(Screen.BusinessHome.createRoute(userId)) {
                             popUpTo(Screen.BusinessInfo.route) { inclusive = true }
                         }
-                        
+
                         // ViewModel durumunu sıfırla
                         userInfoViewModel.resetState()
                     }
@@ -299,7 +301,7 @@ fun NavGraph(navController: NavHostController) {
             val viewModel: CustomerHomeViewModel = viewModel()
             val state = viewModel.uiState.collectAsState()
             val coroutineScope = rememberCoroutineScope()
-            
+
             LaunchedEffect(Unit) {
                 val currentUser = homeViewModel.getCurrentUser()
                 if (currentUser != null) {
@@ -401,11 +403,11 @@ fun NavGraph(navController: NavHostController) {
             when (val currentState = state.value) {
                 is BusinessHomeState.Success -> {
                     val business = currentState.business
-                    
+
                     WorkingHoursScreen(
                         workingDays = business.workingDays,
                         workingHours = business.workingHours,
-                        onWorkingDaysChange = { updatedDays -> 
+                        onWorkingDaysChange = { updatedDays ->
                             // Güncellenmiş günleri kaydedin
                             viewModel.updateWorkingDays(updatedDays)
                         },
@@ -436,12 +438,12 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.BusinessList.route) {
             val viewModel: BusinessListViewModel = viewModel()
             val state = viewModel.businessListState.collectAsState()
-            
+
             // Buraya LaunchedEffect ekleyelim - dil değişimi sonrası yeniden yükleme için
             LaunchedEffect(Unit) {
                 viewModel.loadBusinesses()
             }
-            
+
             when (val currentState = state.value) {
                 is BusinessListState.Loading -> {
                     CircularProgressIndicator()
@@ -478,20 +480,20 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(
-            route = "business_detail/{businessId}",
+            route = Screen.BusinessDetail.route,
             arguments = listOf(navArgument("businessId") { type = NavType.StringType })
         ) { backStackEntry ->
             val businessId = backStackEntry.arguments?.getString("businessId") ?: ""
             Log.d("NavGraph", "BusinessDetail - işletme ID: '$businessId'")
-            
+
             val viewModel: BusinessDetailViewModel = viewModel()
             val uiState = viewModel.uiState.collectAsState().value
-            
+
             // İşletme detaylarını yükle
             LaunchedEffect(businessId) {
                 viewModel.loadBusinessDetails(businessId)
             }
-            
+
             when (uiState) {
                 is BusinessDetailViewModel.BusinessDetailState.Loading -> {
                     Box(
@@ -501,12 +503,12 @@ fun NavGraph(navController: NavHostController) {
                         CircularProgressIndicator()
                     }
                 }
-                
+
                 is BusinessDetailViewModel.BusinessDetailState.Success -> {
                     val business = uiState.business
                     val availableSlots = uiState.availableSlots
                     val selectedDate = uiState.selectedDate
-                    
+
                     BusinessDetailScreen(
                         business = business,
                         availableSlots = availableSlots,
@@ -520,7 +522,7 @@ fun NavGraph(navController: NavHostController) {
                             if (currentUser != null) {
                                 // Önce appointment'ı oluştur
                                 viewModel.createAppointment(currentUser.uid)
-                                
+
                                 // Sonra navigasyon yap (callback olmadan)
                                 navController.navigate(Screen.AppointmentConfirmation.route) {
                                     popUpTo(Screen.BusinessList.route)
@@ -533,7 +535,7 @@ fun NavGraph(navController: NavHostController) {
                         isLoading = false
                     )
                 }
-                
+
                 is BusinessDetailViewModel.BusinessDetailState.Error -> {
                     Column(
                         modifier = Modifier
@@ -547,9 +549,9 @@ fun NavGraph(navController: NavHostController) {
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         Button(
                             onClick = {
                                 viewModel.loadBusinessDetails(businessId)
@@ -557,9 +559,9 @@ fun NavGraph(navController: NavHostController) {
                         ) {
                             Text(stringResource(id = R.string.try_again))
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         OutlinedButton(
                             onClick = {
                                 navController.popBackStack()
@@ -689,7 +691,7 @@ fun NavGraph(navController: NavHostController) {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() },
                 onLanguageClick = { navController.navigate(Screen.LanguageSettings.route) },
-                onLogoutClick = { 
+                onLogoutClick = {
                     FirebaseAuth.getInstance().signOut()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
@@ -710,5 +712,42 @@ fun NavGraph(navController: NavHostController) {
                 }
             )
         }
+
+        composable(route = Screen.AppointmentConfirmation.route) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(id = R.string.appointment_confirmation_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = stringResource(id = R.string.appointment_confirmation_message),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                Button(
+                    onClick = { 
+                        navController.navigate(Screen.CustomerHome.route) {
+                            popUpTo(Screen.CustomerHome.route) { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.7f)
+                ) {
+                    Text(stringResource(id = R.string.go_back_to_home))
+                }
+            }
+        }
     }
-} 
+}

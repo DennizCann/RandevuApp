@@ -19,7 +19,7 @@ class FirebaseService {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
-    suspend fun signIn(email: String, password: String) = 
+    suspend fun signIn(email: String, password: String) =
         auth.signInWithEmailAndPassword(email, password).await()
 
     suspend fun signUp(email: String, password: String) =
@@ -28,7 +28,7 @@ class FirebaseService {
     suspend fun saveUserData(user: User) {
         try {
             Log.d("FirebaseService", "Kullanıcı verisi kaydediliyor: $user")
-            
+
             when (user) {
                 is User.Customer -> {
                     // Map tüm veriyi açık bir şekilde kontrol edelim
@@ -39,7 +39,7 @@ class FirebaseService {
                         "phone" to user.phone,
                         "type" to user.type
                     )
-                    
+
                     Log.d("FirebaseService", "Müşteri verisi: $userData")
                     firestore.collection("customers").document(user.id).set(userData).await()
                     Log.d("FirebaseService", "Müşteri verisi başarıyla kaydedildi")
@@ -57,7 +57,7 @@ class FirebaseService {
                         "workingDays" to user.workingDays,
                         "workingHours" to user.workingHours
                     )
-                    
+
                     Log.d("FirebaseService", "İşletme verisi: $userData")
                     firestore.collection("businesses").document(user.id).set(userData).await()
                     Log.d("FirebaseService", "İşletme verisi başarıyla kaydedildi")
@@ -83,7 +83,7 @@ class FirebaseService {
         return try {
             val collectionName = if (userType == "business") "businesses" else "customers"
             val docRef = firestore.collection(collectionName).document(userId).get().await()
-            
+
             if (docRef.exists()) {
                 if (userType == "business") {
                     docRef.toObject(User.Business::class.java)
@@ -124,7 +124,7 @@ class FirebaseService {
     }
 
     suspend fun updateWorkingHours(
-        businessId: String, 
+        businessId: String,
         workingDays: List<String>,
         workingHours: User.WorkingHours
     ) {
@@ -133,11 +133,11 @@ class FirebaseService {
             Log.d("FirebaseService", "İşletme ID: $businessId")
             Log.d("FirebaseService", "Çalışma günleri: $workingDays")
             Log.d("FirebaseService", "Çalışma saatleri: $workingHours")
-            
+
             val businessRef = FirebaseFirestore.getInstance()
                 .collection("businesses")
                 .document(businessId)
-            
+
             // Farklı bir yaklaşım deneyelim - daha basit bir güncelleme
             val updates = hashMapOf<String, Any>(
                 "workingDays" to workingDays,
@@ -145,9 +145,9 @@ class FirebaseService {
                 "workingHours.closing" to workingHours.closing,
                 "workingHours.slotDuration" to workingHours.slotDuration
             )
-            
+
             businessRef.update(updates).await()
-            
+
             Log.d("FirebaseService", "Çalışma saatleri başarıyla güncellendi")
         } catch (e: Exception) {
             Log.e("FirebaseService", "Çalışma saatleri güncellenemedi: ${e.message}", e)
@@ -203,7 +203,7 @@ class FirebaseService {
                     doc.data?.let { data ->
                         val timestamp = data["dateTime"] as? Timestamp
                         val dateTime = timestamp?.toLocalDateTime()
-                        
+
                         if (dateTime != null && dateTime.toLocalDate() == date) {
                             Appointment(
                                 id = doc.id,
@@ -285,7 +285,7 @@ class FirebaseService {
                 status = AppointmentStatus.PENDING,
                 note = note
             )
-            
+
             firestore.collection("appointments")
                 .add(mapOf(
                     "businessId" to appointment.businessId,
@@ -333,7 +333,7 @@ class FirebaseService {
 
     suspend fun createBlockedAppointment(
         businessId: String,
-        businessName: String, 
+        businessName: String,
         dateTime: LocalDateTime
     ): String {
         return try {
@@ -341,11 +341,11 @@ class FirebaseService {
                 businessId = businessId,
                 businessName = businessName,
                 customerId = "",  // İşletme tarafından kapatıldığı için müşteri yok
-                customerName = "", 
+                customerName = "",
                 dateTime = dateTime,
                 status = AppointmentStatus.BLOCKED
             )
-            
+
             firestore.collection("appointments")
                 .add(mapOf(
                     "businessId" to appointment.businessId,
@@ -379,7 +379,7 @@ class FirebaseService {
                 .document(appointmentId)
                 .get()
                 .await()
-            
+
             if (docSnapshot.exists()) {
                 val data = docSnapshot.data
                 if (data != null) {
@@ -403,27 +403,27 @@ class FirebaseService {
     suspend fun saveCustomerData(userId: String, customerData: Map<String, Any>) {
         try {
             Log.d("FirebaseService", "Müşteri verisi kaydediliyor: $customerData")
-            
+
             // Kullanıcı oturumunu kontrol et
             val currentUser = auth.currentUser
             if (currentUser == null) {
                 throw Exception("Oturum süresi dolmuş (currentUser null)")
             }
-            
+
             // Kullanıcı ID'sini kontrol et
             if (currentUser.uid != userId) {
                 throw Exception("Yetkilendirme hatası: Mevcut kullanıcı ID (${currentUser.uid}) ile istenen ID ($userId) eşleşmiyor")
             }
-            
+
             // Firebase token ID'yi kontrol et (opsiyonel)
             val tokenResult = currentUser.getIdToken(false).await()
             Log.d("FirebaseService", "Token: ${tokenResult.token?.take(15)}...")
-            
+
             firestore.collection("customers")
                 .document(userId)
                 .set(customerData)
                 .await()
-            
+
             Log.d("FirebaseService", "Müşteri verisi başarıyla kaydedildi")
         } catch (e: Exception) {
             Log.e("FirebaseService", "Müşteri verisi kaydedilemedi: ${e.message}", e)
@@ -435,7 +435,7 @@ class FirebaseService {
         try {
             val appointmentsRef = Firebase.firestore.collection("appointments")
                 .whereEqualTo("businessId", businessId)
-            
+
             val querySnapshot = appointmentsRef.get().await()
             return querySnapshot.documents.mapNotNull { document ->
                 document.toObject(Appointment::class.java)?.apply {
@@ -451,19 +451,19 @@ class FirebaseService {
     suspend fun updateBusinessData(businessId: String, data: Map<String, Any>) {
         try {
             Log.d("FirebaseService", "İşletme verisi güncelleniyor: businessId=$businessId, data=$data")
-            
-            // Önce belge var mı kontrol et
-            val docRef = firestore.collection("users").document(businessId)
+
+            // "users" koleksiyonu yerine "businesses" koleksiyonunu kullan
+            val docRef = firestore.collection("businesses").document(businessId)
             val doc = docRef.get().await()
-            
+
             if (!doc.exists()) {
                 Log.w("FirebaseService", "İşletme belgesi bulunamadı: $businessId")
                 throw Exception("İşletme bulunamadı")
             }
-            
+
             // Veriyi güncelle
             docRef.update(data).await()
-            
+
             Log.d("FirebaseService", "İşletme verisi başarıyla güncellendi")
         } catch (e: Exception) {
             Log.e("FirebaseService", "İşletme verisi güncellenirken hata", e)

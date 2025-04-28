@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Sistem çubuklarıyla uyumlu, sabit alt çubuk içeren bir düzen bileşeni.
- * Bu bileşen, ekranın alt kısmında sabit bir buton veya panel göstermek 
+ * Bu bileşen, ekranın alt kısmında sabit bir buton veya panel göstermek
  * istediğiniz her ekran için kullanılabilir.
  */
 @OptIn(ExperimentalMaterial3Api::class)

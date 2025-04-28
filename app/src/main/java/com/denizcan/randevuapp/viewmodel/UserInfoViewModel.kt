@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class UserInfoViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
-    
+
     private val _userInfoState = MutableStateFlow<UserInfoState>(UserInfoState.Initial)
     val userInfoState = _userInfoState.asStateFlow()
 
@@ -27,22 +27,22 @@ class UserInfoViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _userInfoState.value = UserInfoState.Loading
-                
+
                 // Kullanıcının oturum açık olduğunu kontrol et
                 val currentUser = FirebaseAuth.getInstance().currentUser
                 if (currentUser == null) {
                     _userInfoState.value = UserInfoState.Error("Oturum süresi dolmuş. Lütfen tekrar giriş yapın.")
                     return@launch
                 }
-                
+
                 // Kullanıcı ID'sinin doğru olduğunu kontrol et
                 if (currentUser.uid != userId) {
                     _userInfoState.value = UserInfoState.Error("Yetkilendirme hatası. Lütfen tekrar giriş yapın.")
                     return@launch
                 }
-                
+
                 val email = currentUser.email ?: ""
-                
+
                 val customerData = hashMapOf(
                     "id" to userId,
                     "email" to email,
@@ -50,7 +50,7 @@ class UserInfoViewModel : ViewModel() {
                     "phone" to phone,
                     "type" to "customer"
                 )
-                
+
                 firebaseService.saveCustomerData(userId, customerData)
                 _userInfoState.value = UserInfoState.Success
             } catch (e: Exception) {

@@ -36,13 +36,13 @@ fun WorkingHoursScreen(
     var opening by remember { mutableStateOf(workingHours.opening) }
     var closing by remember { mutableStateOf(workingHours.closing) }
     var slotDuration by remember { mutableStateOf(workingHours.slotDuration.toString()) }
-    
+
     // Değişiklik yapıldığında kontrol için
     val hasChanges = localWorkingDays != workingDays ||
             opening != workingHours.opening ||
             closing != workingHours.closing ||
             slotDuration.toIntOrNull() != workingHours.slotDuration
-    
+
     // İşlem süresi fazla uzarsa otomatik zaman aşımına uğratsın
     val isLoading by remember { mutableStateOf(false) }
     LaunchedEffect(isLoading) {
@@ -54,7 +54,7 @@ fun WorkingHoursScreen(
             }
         }
     }
-    
+
     SystemAwareScaffold(
         title = stringResource(id = R.string.working_hours),
         onBackClick = onBackClick,
@@ -87,9 +87,9 @@ fun WorkingHoursScreen(
                 text = stringResource(id = R.string.working_days),
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             DaySelectionSection(
                 selectedDays = localWorkingDays,
                 onSelectionChange = { day, isSelected ->
@@ -100,17 +100,17 @@ fun WorkingHoursScreen(
                     }
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Çalışma saatleri ayarı
             Text(
                 text = stringResource(id = R.string.working_hours),
                 style = MaterialTheme.typography.titleMedium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Açılış saati
             OutlinedTextField(
                 value = opening,
@@ -119,9 +119,9 @@ fun WorkingHoursScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Kapanış saati
             OutlinedTextField(
                 value = closing,
@@ -130,9 +130,9 @@ fun WorkingHoursScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Randevu süresi
             OutlinedTextField(
                 value = slotDuration,
@@ -141,9 +141,9 @@ fun WorkingHoursScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Debug bilgileri (seçimli)
             Text(
                 text = stringResource(id = R.string.selected_days) + ": " + localWorkingDays.joinToString(", "),
@@ -152,7 +152,7 @@ fun WorkingHoursScreen(
             )
         }
     }
-    
+
     // Durum mesajını göster
     if (workingHoursState is BusinessHomeViewModel.WorkingHoursState.Error) {
         Snackbar(
@@ -186,7 +186,7 @@ private fun DaySelectionSection(
     onSelectionChange: (String, Boolean) -> Unit
 ) {
     val allDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
-    
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -201,7 +201,7 @@ private fun DaySelectionSection(
                 "SUNDAY" -> stringResource(id = R.string.day_sunday)
                 else -> day
             }
-            
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,7 +213,7 @@ private fun DaySelectionSection(
                     text = dayName,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Checkbox(
                     checked = selectedDays.contains(day),
                     onCheckedChange = { isChecked ->

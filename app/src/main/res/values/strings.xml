@@ -107,4 +107,7 @@
     <string name="closed_on_selected_day">Business is closed on the selected day</string>
     <string name="phone_number">Phone: %s</string>
     <string name="address_colon">Address: %s</string>
+    <string name="appointment_confirmation_title">Your Appointment Request Received</string>
+    <string name="appointment_confirmation_message">Your appointment request has been sent to the business. You will be notified when they confirm your request.</string>
+    <string name="go_back_to_home">Back to Home</string>
 </resources>

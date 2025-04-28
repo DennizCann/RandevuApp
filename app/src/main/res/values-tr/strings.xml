@@ -107,4 +107,7 @@
     <string name="closed_on_selected_day">İşletme seçilen günde kapalıdır</string>
     <string name="phone_number">Telefon: %s</string>
     <string name="address_colon">Adres: %s</string>
-</resources> 
+    <string name="appointment_confirmation_title">Randevu Talebiniz Alındı</string>
+    <string name="appointment_confirmation_message">Randevu talebiniz işletmeye iletildi. İşletme talebinizi onayladığında bilgilendirileceksiniz.</string>
+    <string name="go_back_to_home">Ana Sayfaya Dön</string>
+</resources>

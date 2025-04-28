@@ -19,7 +19,7 @@ import kotlinx.coroutines.tasks.await
 
 class BusinessHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
-    
+
     private val _uiState = MutableStateFlow<BusinessHomeState>(BusinessHomeState.Loading)
     val uiState = _uiState.asStateFlow()
 
@@ -87,64 +87,64 @@ class BusinessHomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _workingHoursState.value = WorkingHoursState.Loading
-                
+
                 // İşletme ID'si kontrolü
                 val businessId = currentBusinessId
                 if (businessId == null) {
                     _workingHoursState.value = WorkingHoursState.Error("İşletme ID'si bulunamadı")
                     return@launch
                 }
-                
+
                 // Kaydetmeden önce veri doğrulaması
                 val workingDays = updatedWorkingDays
                 if (workingDays.isNullOrEmpty()) {
                     _workingHoursState.value = WorkingHoursState.Error("En az bir çalışma günü seçmelisiniz")
                     return@launch
                 }
-                
+
                 val workingHours = updatedWorkingHours
                 if (workingHours == null || workingHours.opening.isEmpty() || workingHours.closing.isEmpty()) {
                     _workingHoursState.value = WorkingHoursState.Error("Açılış ve kapanış saatleri gereklidir")
                     return@launch
                 }
-                
+
                 // Non-nullable değerler ile Map oluşturma
                 val workingHoursData = mapOf<String, Any>(
                     "opening" to workingHours.opening,
                     "closing" to workingHours.closing,
                     "slotDuration" to workingHours.slotDuration
                 )
-                
+
                 // Doğru veri formatlama (Any? -> Any dönüşümü yaparak)
                 val dataToUpdate = mapOf<String, Any>(
                     "workingDays" to workingDays,
                     "workingHours" to workingHoursData
                 )
-                
+
                 // Detaylı loglama
                 Log.d("BusinessHome", "Kaydedilecek veriler: $dataToUpdate")
                 Log.d("BusinessHome", "BusinessID: $businessId")
-                
+
                 // Veri tabanına kaydet - nullable olmayan Map kullanarak
                 firebaseService.updateBusinessData(businessId, dataToUpdate)
-                
+
                 // İşletmeyi tekrar yükle
                 loadBusinessData(businessId)
-                
+
                 _workingHoursState.value = WorkingHoursState.Success(
                     message = "Çalışma saatleri başarıyla kaydedildi",
                     workingDays = workingDays,
                     workingHours = workingHours
                 )
-                
+
                 // Kaydettikten sonra veritabanından tekrar alarak doğrulama
                 val updatedDoc = FirebaseFirestore.getInstance()
                     .collection("users")
                     .document(businessId)
                     .get().await()
-                
+
                 Log.d("BusinessHome", "Kaydedilen veri (doğrulama): ${updatedDoc.data}")
-                
+
             } catch (e: Exception) {
                 Log.e("BusinessHome", "Çalışma saatleri kaydedilemedi", e)
                 _workingHoursState.value = WorkingHoursState.Error("Çalışma saatleri kaydedilemedi: ${e.message}")
@@ -178,28 +178,28 @@ class BusinessHomeViewModel : ViewModel() {
             try {
                 // İstek göndermeden önce yükleniyor durumunu ayarla
                 _workingHoursState.value = WorkingHoursState.Loading
-                
+
                 // Güncellenmiş çalışma saatleri
                 val updatedWorkingHours = User.WorkingHours(
                     opening = workingHours.opening,
                     closing = workingHours.closing,
                     slotDuration = workingHours.slotDuration
                 )
-                
+
                 // Log ekleyelim
                 Log.d("BusinessHomeViewModel", "Güncellenecek çalışma günleri: $workingDays")
                 Log.d("BusinessHomeViewModel", "Güncellenecek çalışma saatleri: $updatedWorkingHours")
-                
+
                 // Firebase'e kaydet
                 firebaseService.updateWorkingHours(
                     businessId = currentBusinessId ?: "",
                     workingDays = workingDays,
                     workingHours = updatedWorkingHours
                 )
-                
+
                 // Business nesnesini güncelle (load Business fonksiyonu çağrılabilir veya yerel state'i güncelleyebiliriz)
                 loadBusinessData(currentBusinessId ?: "")
-                
+
                 // Success state'e güncelle
                 _workingHoursState.value = WorkingHoursState.Success(
                     message = "Çalışma saatleri başarıyla güncellendi",
@@ -220,20 +220,20 @@ class BusinessHomeViewModel : ViewModel() {
             try {
                 currentBusinessId?.let { businessId ->
                     _calendarState.value = CalendarState.Loading
-                    
+
                     // İşletme bilgilerini al
                     val business = firebaseService.getBusinessById(businessId)
-                    
+
                     // Tüm randevuları getir
                     val appointments = firebaseService.getAppointmentsByDate(businessId, date)
-                    
+
                     // İşletmenin çalışma saatlerine göre tüm zaman aralıklarını oluştur
                     val availableTimeSlots = if (business != null) {
                         calculateTimeSlots(business, date)
                     } else {
                         emptyList()
                     }
-                    
+
                     _calendarState.value = CalendarState.Success(
                         appointments = appointments,
                         availableTimeSlots = availableTimeSlots,
@@ -251,21 +251,21 @@ class BusinessHomeViewModel : ViewModel() {
         if (!business.workingDays.contains(date.dayOfWeek.name)) {
             return emptyList()
         }
-        
+
         val workingHours = business.workingHours
         val startTime = LocalTime.parse(workingHours.opening)
         val endTime = LocalTime.parse(workingHours.closing)
         val slotDuration = workingHours.slotDuration
-        
+
         // Tüm zaman dilimlerini oluştur
         val timeSlots = mutableListOf<String>()
         var currentTime = startTime
-        
+
         while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
             timeSlots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
             currentTime = currentTime.plusMinutes(slotDuration.toLong())
         }
-        
+
         return timeSlots
     }
 
@@ -276,17 +276,17 @@ class BusinessHomeViewModel : ViewModel() {
                     // Zaman dilimini "HH:mm" formatından LocalDateTime'a çevir
                     val timeParts = timeSlot.split(":")
                     val dateTime = date.atTime(timeParts[0].toInt(), timeParts[1].toInt())
-                    
+
                     // İşletme adını al
                     val business = firebaseService.getBusinessById(businessId)
-                    
+
                     // Zaman dilimini kapat (BLOCKED olarak işaretle)
                     firebaseService.createBlockedAppointment(
                         businessId = businessId,
                         businessName = business?.businessName ?: "Bilinmeyen İşletme",
                         dateTime = dateTime
                     )
-                    
+
                     // Takvimi güncelle
                     loadAppointments(date)
                 }
@@ -306,7 +306,7 @@ class BusinessHomeViewModel : ViewModel() {
                     // Diğer durumlar için normal güncelleme yap
                     firebaseService.updateAppointmentStatus(appointmentId, status)
                 }
-                
+
                 // Hem randevu taleplerini hem de takvimi güncelle
                 val currentRequestsState = _appointmentRequestsState.value
                 if (currentRequestsState is AppointmentRequestsState.Success) {
@@ -346,7 +346,7 @@ class BusinessHomeViewModel : ViewModel() {
             try {
                 // Kapatılmış zaman dilimini tamamen sil
                 firebaseService.deleteAppointment(appointmentId)
-                
+
                 // Takvimi güncelle
                 val currentState = _calendarState.value
                 if (currentState is CalendarState.Success) {
@@ -363,7 +363,7 @@ class BusinessHomeViewModel : ViewModel() {
             try {
                 // Randevuyu tamamen sil
                 firebaseService.deleteAppointment(appointmentId)
-                
+
                 // Takvimi güncelle
                 val currentState = _calendarState.value
                 if (currentState is CalendarState.Success) {
@@ -379,16 +379,16 @@ class BusinessHomeViewModel : ViewModel() {
         try {
             val startTime = LocalTime.parse(opening)
             val endTime = LocalTime.parse(closing)
-            
+
             val timeSlots = mutableListOf<org.threeten.bp.LocalDateTime>()
             var currentTime = startTime
-            
+
             while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
                 val dateTime = date.atTime(currentTime)
                 timeSlots.add(dateTime)
                 currentTime = currentTime.plusMinutes(slotDuration.toLong())
             }
-            
+
             return timeSlots
         } catch (e: Exception) {
             println("Zaman aralıkları oluşturulurken hata: ${e.message}")
