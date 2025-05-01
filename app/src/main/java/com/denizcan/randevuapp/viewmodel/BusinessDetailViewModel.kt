@@ -27,13 +27,16 @@ class BusinessDetailViewModel : ViewModel() {
     private var selectedDateTime: LocalDateTime? = null
     private var appointmentNote: String = ""
     private var currentBusiness: User.Business? = null
+    private var isCreatingAppointment = false
 
     sealed class BusinessDetailState {
         object Loading : BusinessDetailState()
         data class Success(
             val business: User.Business,
             val availableSlots: List<String>,
-            val selectedDate: LocalDate = LocalDate.now()
+            val selectedDate: LocalDate = LocalDate.now(),
+            val selectedTime: String? = null,
+            val note: String = ""
         ) : BusinessDetailState()
         data class Error(val message: String) : BusinessDetailState()
     }
@@ -132,7 +135,7 @@ class BusinessDetailViewModel : ViewModel() {
                 
                 // Başlangıç tarihi için uygun slotları hesapla
                 val currentDate = LocalDate.now()
-                val availableSlots = calculateAvailableSlots(business, currentDate, emptyList())
+                val availableSlots = calculateAvailableSlots(business, currentDate)
                 
                 Log.d("BusinessDetail", "Hesaplanan slotlar: $availableSlots")
                 
@@ -218,7 +221,7 @@ class BusinessDetailViewModel : ViewModel() {
                     Log.d("BusinessDetail", "Çekilen randevu sayısı: ${appointments.size}")
                     
                     // Müsait slotları hesapla
-                    val availableSlots = calculateAvailableSlots(business, date, appointments)
+                    val availableSlots = calculateAvailableSlots(business, date)
                     
                     // Yeni state ile güncelle
                     val currentState = _uiState.value
@@ -226,7 +229,9 @@ class BusinessDetailViewModel : ViewModel() {
                         _uiState.value = BusinessDetailState.Success(
                             business = currentState.business,
                             availableSlots = availableSlots,
-                            selectedDate = date
+                            selectedDate = date,
+                            selectedTime = currentState.selectedTime,
+                            note = currentState.note
                         )
                         Log.d("BusinessDetail", "Müsait slotlar başarıyla güncellendi: ${availableSlots.size} slot")
                     } else {
@@ -242,57 +247,54 @@ class BusinessDetailViewModel : ViewModel() {
         }
     }
 
-    private fun calculateAvailableSlots(
+    private suspend fun calculateAvailableSlots(
         business: User.Business,
-        date: LocalDate,
-        appointments: List<Appointment>
+        date: LocalDate
     ): List<String> {
-        val dayName = date.dayOfWeek.name
-        Log.d("BusinessDetail", "Slot hesaplama: Gün: $dayName, İşletme günleri: ${business.workingDays}")
+        val workingHours = business.workingHours
         
-        // Eğer seçilen gün işletmenin çalışma günlerinden biri değilse boş liste döndür
+        // İşletmenin çalışma günleri kontrolü
+        val dayName = date.dayOfWeek.name
         if (!business.workingDays.contains(dayName)) {
             Log.d("BusinessDetail", "$dayName işletmenin çalışma günlerinde değil")
             return emptyList()
         }
-
-        // Çalışma saatleri - veri tabanı formatına uygun
-        val workingHours = business.workingHours
-        val startTime = try {
-            LocalTime.parse(workingHours.opening)
-        } catch (e: Exception) {
-            Log.e("BusinessDetail", "Açılış saati parse hatası: ${workingHours.opening}", e)
-            LocalTime.of(9, 0) // Varsayılan değer
-        }
         
-        val endTime = try {
-            LocalTime.parse(workingHours.closing)
-        } catch (e: Exception) {
-            Log.e("BusinessDetail", "Kapanış saati parse hatası: ${workingHours.closing}", e)
-            LocalTime.of(18, 0) // Varsayılan değer
-        }
+        // Tüm randevuları al
+        val appointments = firebaseService.getAppointmentsByDate(business.id, date)
         
-        // Veritabanındaki slotDuration değerini kullan (15 dakika)
-        val slotDuration = workingHours.slotDuration.takeIf { it > 0 } ?: 30 // Sıfır veya negatifse 30 dakika kullan
-
-        // Slots oluştur
-        val allSlots = mutableListOf<String>()
-        var currentTime = startTime
-        while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
-            allSlots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-            currentTime = currentTime.plusMinutes(slotDuration.toLong())
-        }
-        
-        Log.d("BusinessDetail", "Oluşturulan tüm slotlar: $allSlots")
-
-        // Dolu slotları filtrele
+        // Dolu saatleri bul
         val bookedSlots = appointments
-            .filter { it.dateTime.toLocalDate() == date }
-            .map { it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }
+            .filter { it.status == AppointmentStatus.PENDING || 
+                     it.status == AppointmentStatus.CONFIRMED || 
+                     it.status == AppointmentStatus.BLOCKED }
+            .map { it.dateTime.format(DateTimeFormatter.ofPattern("HH:mm")) }
         
-        // Müsait slotları hesapla ve döndür
+        Log.d("BusinessDetail", "Rezerve edilmiş ve kapatılmış slotlar: $bookedSlots")
+        
+        // Müsait saatleri hesapla (tüm çalışma saatleri - dolu saatler)
+        val allSlots = generateTimeSlots(workingHours)
         val availableSlots = allSlots.filter { slot -> !bookedSlots.contains(slot) }
-        return availableSlots
+        
+        // Bugün için geçmiş saatleri filtrele
+        val today = LocalDate.now()
+        val now = LocalTime.now()
+        
+        val filteredSlots = if (date.equals(today)) {
+            availableSlots.filter { slot ->
+                try {
+                    val slotTime = LocalTime.parse(slot, DateTimeFormatter.ofPattern("HH:mm"))
+                    slotTime.isAfter(now)
+                } catch (e: Exception) {
+                    Log.e("BusinessDetail", "Slot filtreleme hatası: $slot", e)
+                    true // Hata durumunda slotu göster
+                }
+            }
+        } else {
+            availableSlots
+        }
+        
+        return filteredSlots
     }
 
     fun updateSelectedDate(date: LocalDate) {
@@ -310,13 +312,15 @@ class BusinessDetailViewModel : ViewModel() {
                 val currentState = _uiState.value
                 if (currentState is BusinessDetailState.Success) {
                     // Seçilen tarih için boş slotlar hesapla
-                    val availableSlots = calculateAvailableSlots(currentBusiness!!, date, emptyList())
+                    val availableSlots = calculateAvailableSlots(currentBusiness!!, date)
                     
                     // UI state'i güncelle
                     _uiState.value = BusinessDetailState.Success(
                         business = currentState.business,
                         availableSlots = availableSlots,
-                        selectedDate = date
+                        selectedDate = date,
+                        selectedTime = currentState.selectedTime,
+                        note = currentState.note
                     )
                     
                     Log.d("BusinessDetail", "Tarih güncellendi: $date, Müsait slotlar: $availableSlots")
@@ -340,16 +344,26 @@ class BusinessDetailViewModel : ViewModel() {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is BusinessDetailState.Success) {
-                val timeParts = time.split(":")
-                val hour = timeParts[0].toInt()
-                val minute = timeParts[1].toInt()
-                
-                selectedDateTime = LocalDateTime.of(
-                    currentState.selectedDate,
-                    LocalTime.of(hour, minute)
-                )
-                
-                Log.d("BusinessDetail", "Seçilen tarih ve saat: $selectedDateTime")
+                try {
+                    // HH:mm formatındaki saati parse et
+                    val selectedTime = LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"))
+                    
+                    // Seçilen tarih ve saat birleştir
+                    selectedDateTime = LocalDateTime.of(
+                        currentState.selectedDate,
+                        selectedTime
+                    )
+                    
+                    // UI state'i güncelle
+                    _uiState.value = currentState.copy(
+                        selectedTime = time
+                    )
+                    
+                    Log.d("BusinessDetail", "Seçilen tarih ve saat güncellendi: $selectedDateTime")
+                    Log.d("BusinessDetail", "Formatlı saat: ${selectedTime.format(DateTimeFormatter.ofPattern("HH:mm"))}")
+                } catch (e: Exception) {
+                    Log.e("BusinessDetail", "Saat formatı hatası: $time", e)
+                }
             }
         }
     }
@@ -359,56 +373,113 @@ class BusinessDetailViewModel : ViewModel() {
     }
 
     fun createAppointment(customerId: String) {
+        // İşlemi başlat
+        isCreatingAppointment = true
+        
         viewModelScope.launch {
             try {
+                Log.d("BusinessDetail", "Randevu oluşturma başlıyor...")
+
                 val currentState = _uiState.value
-                if (currentState !is BusinessDetailState.Success || selectedDateTime == null) {
+                if (currentState !is BusinessDetailState.Success) {
+                    Log.e("BusinessDetail", "Randevu oluşturulamadı: Geçersiz durum")
+                    isCreatingAppointment = false
                     return@launch
                 }
                 
-                val business = currentState.business
+                if (currentState.selectedTime == null) {
+                    Log.e("BusinessDetail", "Randevu oluşturulamadı: Saat seçilmemiş")
+                    isCreatingAppointment = false
+                    return@launch
+                }
                 
-                val appointment = mapOf(
-                    "businessId" to business.id,
-                    "customerId" to customerId,
-                    "dateTime" to selectedDateTime.toString(),
-                    "status" to AppointmentStatus.PENDING.name,
-                    "note" to appointmentNote,
-                    "createdAt" to LocalDateTime.now().toString()
+                // Burada ÖNEMLİ: selectedDateTime zaten updateSelectedTime'da ayarlanmış olmalı
+                // Eğer null ise, burada yeniden oluşturalım
+                val dateTimeToUse = selectedDateTime ?: LocalDateTime.of(
+                    currentState.selectedDate,
+                    LocalTime.parse(currentState.selectedTime, DateTimeFormatter.ofPattern("HH:mm"))
                 )
                 
-                // Randevuyu Firestore'a kaydet
-                db.collection("appointments").add(appointment).await()
+                Log.d("BusinessDetail", "Randevu oluşturulacak zaman: $dateTimeToUse")
+                Log.d("BusinessDetail", "Randevu oluşturuluyor - İşletme: ${currentState.business.id}, Müşteri: $customerId")
                 
-                // State'i sıfırla
-                selectedDateTime = null
-                appointmentNote = ""
+                Log.d("BusinessDetail", "FirebaseService.createAppointment çağrılıyor")
                 
-                Log.d("BusinessDetail", "Randevu başarıyla oluşturuldu")
+                try {
+                    firebaseService.createAppointment(
+                        businessId = currentState.business.id,
+                        customerId = customerId,
+                        dateTime = dateTimeToUse,
+                        note = currentState.note
+                    )
+                    Log.d("BusinessDetail", "Randevu başarıyla oluşturuldu")
+                } catch (e: Exception) {
+                    Log.e("BusinessDetail", "Randevu oluşturma Firebase hatası", e)
+                    e.printStackTrace()
+                    throw e
+                }
+                
             } catch (e: Exception) {
-                Log.e("BusinessDetail", "Randevu oluşturulurken hata", e)
+                Log.e("BusinessDetail", "Randevu oluşturma HATA: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                isCreatingAppointment = false
             }
         }
     }
 
-    private fun generateAvailableTimes(date: LocalDate, opening: String, closing: String, slotDuration: Int): List<LocalDateTime> {
+    private fun generateTimeSlots(workingHours: User.WorkingHours): List<String> {
         try {
-            val startTime = LocalTime.parse(opening)
-            val endTime = LocalTime.parse(closing)
+            val startTime = LocalTime.parse(workingHours.opening)
+            val endTime = LocalTime.parse(workingHours.closing)
+            val slotDuration = workingHours.slotDuration.toLong()
             
-            val availableTimes = mutableListOf<LocalDateTime>()
+            val slots = mutableListOf<String>()
             var currentTime = startTime
             
-            while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
-                val dateTime = date.atTime(currentTime)
-                availableTimes.add(dateTime)
-                currentTime = currentTime.plusMinutes(slotDuration.toLong())
+            while (currentTime.plusMinutes(slotDuration) <= endTime) {
+                slots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
+                currentTime = currentTime.plusMinutes(slotDuration)
             }
             
-            return availableTimes
+            return slots
         } catch (e: Exception) {
-            println("Müsait zamanlar hesaplanırken hata: ${e.message}")
+            Log.e("BusinessDetail", "Saat aralıkları oluşturulurken hata: ${e.message}", e)
             return emptyList()
+        }
+    }
+
+    // İşletme için saat kapatma fonksiyonu
+    fun blockTimeSlot(time: String) {
+        viewModelScope.launch {
+            try {
+                val currentState = _uiState.value
+                if (currentState !is BusinessDetailState.Success) {
+                    Log.e("BusinessDetail", "Saat kapatılamadı: Geçersiz durum")
+                    return@launch
+                }
+                
+                val business = currentState.business
+                val selectedDate = currentState.selectedDate
+                
+                // Zaman formatını parse et
+                val selectedTime = LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"))
+                
+                // Tarih ve saat birleştir
+                val dateTime = LocalDateTime.of(selectedDate, selectedTime)
+                Log.d("BusinessDetail", "Kapatılacak saat: $dateTime")
+                
+                // FirebaseService'deki blockTimeSlot metodunu çağır
+                firebaseService.blockTimeSlot(business.id, dateTime)
+                
+                // Başarılı ise, slotları yeniden yükle
+                loadAvailableSlots(selectedDate)
+                
+                // UI'a bilgi mesajı göster (ViewModel'de bir event flow kullanabilirsiniz)
+                Log.d("BusinessDetail", "Saat başarıyla kapatıldı: $time")
+            } catch (e: Exception) {
+                Log.e("BusinessDetail", "Saat kapatılırken hata", e)
+            }
         }
     }
 } 

@@ -270,35 +270,46 @@ class FirebaseService {
         customerId: String,
         dateTime: LocalDateTime,
         note: String = ""
-    ): String {
-        return try {
-            // İşletme ve müşteri bilgilerini al
-            val business = getBusinessById(businessId)
-            val customer = getUserData(customerId, "customer") as? User.Customer
-
-            val appointment = Appointment(
-                businessId = businessId,
-                businessName = business?.businessName ?: "Bilinmeyen İşletme",
-                customerId = customerId,
-                customerName = customer?.fullName ?: "İsimsiz Müşteri",
-                dateTime = dateTime,
-                status = AppointmentStatus.PENDING,
-                note = note
+    ) {
+        try {
+            Log.d("FirebaseService", "Randevu oluşturuluyor... businessId=$businessId, customerId=$customerId")
+            
+            // Timestamp oluştur
+            val instant = dateTime.atZone(ZoneId.systemDefault()).toInstant()
+            val timestamp = Timestamp(instant.epochSecond, instant.nano)
+            
+            // Müşteri bilgilerini al
+            val customerDoc = firestore.collection("customers").document(customerId).get().await()
+            val customerName = customerDoc.getString("fullName") ?: "İsimsiz Müşteri"
+            
+            // İşletme bilgilerini al
+            val businessDoc = firestore.collection("businesses").document(businessId).get().await()
+            val businessName = businessDoc.getString("businessName") ?: ""
+            
+            // Verileri hazırla
+            val appointment = hashMapOf(
+                "businessId" to businessId,
+                "businessName" to businessName,
+                "customerId" to customerId,
+                "customerName" to customerName, // Müşteri adını ekle
+                "dateTime" to timestamp,
+                "status" to "PENDING",
+                "note" to note,
+                "createdAt" to Timestamp.now()
             )
-
-            firestore.collection("appointments")
-                .add(mapOf(
-                    "businessId" to appointment.businessId,
-                    "businessName" to appointment.businessName,
-                    "customerId" to appointment.customerId,
-                    "customerName" to appointment.customerName,
-                    "dateTime" to appointment.dateTime.toTimestamp(),
-                    "status" to appointment.status.name,
-                    "note" to appointment.note
-                ))
+            
+            // Firestore'a kaydet
+            val db = Firebase.firestore
+            val result = db.collection("appointments")
+                .document() // Otomatik ID
+                .set(appointment)
                 .await()
-                .id
+            
+            Log.d("FirebaseService", "Randevu kaydı başarılı")
         } catch (e: Exception) {
+            Log.e("FirebaseService", "RANDEVU KAYDI HATASI", e)
+            Log.e("FirebaseService", "Hata Detayları: ${e.javaClass.name} - ${e.message}")
+            e.printStackTrace()
             throw e
         }
     }
@@ -467,6 +478,72 @@ class FirebaseService {
             Log.d("FirebaseService", "İşletme verisi başarıyla güncellendi")
         } catch (e: Exception) {
             Log.e("FirebaseService", "İşletme verisi güncellenirken hata", e)
+            throw e
+        }
+    }
+
+    suspend fun createAppointmentWithCustomId(
+        businessId: String,
+        customerId: String,
+        dateTime: LocalDateTime,
+        note: String = ""
+    ): String {
+        return try {
+            // Benzersiz bir ID oluştur
+            val appointmentId = "appointment_${System.currentTimeMillis()}"
+            
+            // Temel veri
+            val appointmentData = mapOf(
+                "businessId" to businessId,
+                "customerId" to customerId,
+                "dateTime" to dateTime.toString(),
+                "status" to "PENDING",
+                "note" to note
+            )
+            
+            Log.d("FirebaseService", "Özel ID ile randevu oluşturuluyor: $appointmentId")
+            
+            // Belirli ID ile belge oluştur
+            firestore.collection("appointments")
+                .document(appointmentId)
+                .set(appointmentData)
+                .await()
+            
+            Log.d("FirebaseService", "Özel ID ile randevu oluşturuldu")
+            appointmentId
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Özel ID ile randevu oluşturma hatası", e)
+            throw e
+        }
+    }
+
+    suspend fun blockTimeSlot(businessId: String, dateTime: LocalDateTime) {
+        try {
+            // Timestamp oluştur
+            val instant = dateTime.atZone(ZoneId.systemDefault()).toInstant()
+            val timestamp = Timestamp(instant.epochSecond, instant.nano)
+            
+            // Bloklanmış randevu oluştur
+            val blockedSlot = hashMapOf(
+                "businessId" to businessId,
+                "customerId" to businessId, // İşletmenin kendisi tarafından bloklandığını belirtmek için
+                "dateTime" to timestamp,
+                "status" to "CONFIRMED", // Onaylanmış randevu gibi davranacak
+                "note" to "İşletme tarafından kapatıldı",
+                "createdAt" to Timestamp.now(),
+                "isBlocked" to true // İlave alan
+            )
+            
+            // Firestore'a kaydet
+            val db = Firebase.firestore
+            db.collection("appointments")
+                .document()
+                .set(blockedSlot)
+                .await()
+            
+            Log.d("FirebaseService", "Saat aralığı başarıyla kapatıldı")
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Saat aralığı kapatılırken hata", e)
             throw e
         }
     }

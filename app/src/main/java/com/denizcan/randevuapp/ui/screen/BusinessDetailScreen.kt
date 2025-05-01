@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.denizcan.randevuapp.R
 import com.denizcan.randevuapp.ui.components.AppTopBar
+import com.denizcan.randevuapp.viewmodel.BusinessDetailViewModel
+import com.denizcan.randevuapp.viewmodel.BusinessDetailViewModel.BusinessDetailState
 
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -48,13 +50,16 @@ fun BusinessDetailScreen(
     onNoteChange: (String) -> Unit,
     onAppointmentRequest: () -> Unit,
     onBackClick: () -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    viewModel: BusinessDetailViewModel
 ) {
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
     var appointmentNote by remember { mutableStateOf("") }
 
     val today = LocalDate.now()
     val dateRange = generateDateRange(today, 14)
+
+    val uiState = viewModel.uiState.collectAsState().value
 
     Scaffold(
         topBar = {
@@ -259,6 +264,18 @@ fun BusinessDetailScreen(
                 }
             }
         }
+    }
+
+    when (uiState) {
+        is BusinessDetailState.Loading -> {
+            // Yükleniyor...
+        }
+        is BusinessDetailState.Success -> {
+            // BusinessDetailScreen sayfasında state.availableSlots'u kullanıyoruz
+            // Bu listeye kapatılmış slotlar dahil olmamalı 
+        }
+        // ...
+        is BusinessDetailState.Error -> TODO()
     }
 }
 

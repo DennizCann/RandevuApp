@@ -483,11 +483,12 @@ fun NavGraph(navController: NavHostController) {
             route = Screen.BusinessDetail.route,
             arguments = listOf(navArgument("businessId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val businessId = backStackEntry.arguments?.getString("businessId") ?: ""
-            Log.d("NavGraph", "BusinessDetail - işletme ID: '$businessId'")
-
+            val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
             val viewModel: BusinessDetailViewModel = viewModel()
             val uiState = viewModel.uiState.collectAsState().value
+            
+            // Coroutine scope'u burada oluştur (composable içinde)
+            val coroutineScope = rememberCoroutineScope()
 
             // İşletme detaylarını yükle
             LaunchedEffect(businessId) {
@@ -513,26 +514,33 @@ fun NavGraph(navController: NavHostController) {
                         business = business,
                         availableSlots = availableSlots,
                         selectedDate = selectedDate,
-                        onDateSelect = viewModel::updateSelectedDate,
-                        onTimeSelect = viewModel::updateSelectedTime,
-                        onNoteChange = viewModel::updateNote,
+                        onDateSelect = { date -> viewModel.updateSelectedDate(date) },
+                        onTimeSelect = { time -> viewModel.updateSelectedTime(time) },
+                        onNoteChange = { note -> viewModel.updateNote(note) },
                         onAppointmentRequest = {
-                            // Kullanıcı ID'si gerekliyse
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             if (currentUser != null) {
-                                // Önce appointment'ı oluştur
-                                viewModel.createAppointment(currentUser.uid)
-
-                                // Sonra navigasyon yap (callback olmadan)
-                                navController.navigate(Screen.AppointmentConfirmation.route) {
-                                    popUpTo(Screen.BusinessList.route)
+                                Log.d("NavGraph", "Randevu talebi oluşturuluyor, kullanıcı: ${currentUser.uid}")
+                                
+                                coroutineScope.launch {
+                                    try {
+                                        val appointmentId = viewModel.createAppointment(currentUser.uid)
+                                        Log.d("NavGraph", "Randevu başarıyla oluşturuldu, ID: $appointmentId")
+                                        
+                                        navController.navigate(Screen.AppointmentConfirmation.route) {
+                                            popUpTo(Screen.BusinessList.route)
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("NavGraph", "Randevu oluşturma hatası", e)
+                                    }
                                 }
+                            } else {
+                                Log.e("NavGraph", "Kullanıcı oturumu bulunamadı")
                             }
                         },
-                        onBackClick = {
-                            navController.popBackStack()
-                        },
-                        isLoading = false
+                        onBackClick = { navController.popBackStack() },
+                        isLoading = false,
+                        viewModel = viewModel
                     )
                 }
 

@@ -255,7 +255,12 @@ class BusinessHomeViewModel : ViewModel() {
         val workingHours = business.workingHours
         val startTime = LocalTime.parse(workingHours.opening)
         val endTime = LocalTime.parse(workingHours.closing)
+        // Randevu süresini işletmenin ayarladığı değerden al
         val slotDuration = workingHours.slotDuration
+        
+        // Debug için log ekleyelim
+        Log.d("BusinessHomeVM", "Randevu süresi: $slotDuration dakika")
+        Log.d("BusinessHomeVM", "Çalışma saatleri: ${workingHours.opening} - ${workingHours.closing}")
 
         // Tüm zaman dilimlerini oluştur
         val timeSlots = mutableListOf<String>()
@@ -265,6 +270,9 @@ class BusinessHomeViewModel : ViewModel() {
             timeSlots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
             currentTime = currentTime.plusMinutes(slotDuration.toLong())
         }
+        
+        // Oluşturulan aralıkları loglayalım
+        Log.d("BusinessHomeVM", "Oluşturulan zaman aralıkları: ${timeSlots.joinToString(", ")}")
 
         return timeSlots
     }
