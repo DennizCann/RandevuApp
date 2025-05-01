@@ -110,4 +110,6 @@
     <string name="appointment_confirmation_title">Your Appointment Request Received</string>
     <string name="appointment_confirmation_message">Your appointment request has been sent to the business. You will be notified when they confirm your request.</string>
     <string name="go_back_to_home">Back to Home</string>
+    <string name="welcome_business">Hoş Geldin, %1$s</string>
+    <string name="welcome_customer">Hoş Geldin, %1$s</string>
 </resources>

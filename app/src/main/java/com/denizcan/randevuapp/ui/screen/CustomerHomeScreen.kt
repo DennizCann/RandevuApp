@@ -20,61 +20,56 @@ fun CustomerHomeScreen(
     customerName: String,
     onBusinessListClick: () -> Unit,
     onAppointmentsClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        TopAppBar(
-            title = { Text(stringResource(id = R.string.app_name)) },
-            actions = {
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = stringResource(id = R.string.settings)
-                    )
-                }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Hoş Geldin, $customerName") },
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.welcome),
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onBusinessListClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.search_business))
             }
-        )
 
-        Text(
-            text = stringResource(id = R.string.welcome),
-            style = MaterialTheme.typography.headlineMedium
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onAppointmentsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.my_appointments))
+            }
 
-        Button(
-            onClick = onBusinessListClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.search_business))
-        }
+            Spacer(modifier = Modifier.weight(1f))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onAppointmentsClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.my_appointments))
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        val context = LocalContext.current
-        
-        OutlinedButton(
-            onClick = {
-                Log.d("CustomerHomeScreen", "Logout button was pressed")
-                MainActivity.logout(context)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.logout))
+            val context = LocalContext.current
+            
+            OutlinedButton(
+                onClick = {
+                    Log.d("CustomerHomeScreen", "Logout button was pressed")
+                    MainActivity.logout(context)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.logout))
+            }
         }
     }
 } 

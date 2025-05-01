@@ -68,16 +68,18 @@ class CustomerHomeViewModel : ViewModel() {
     fun cancelAppointment(appointmentId: String) {
         viewModelScope.launch {
             try {
-                // Randevuyu tamamen sil
+                _appointmentsState.value = AppointmentsState.Loading
+                
+                // Randevu durumunu değiştirmek yerine tamamen sil
                 firebaseService.deleteAppointment(appointmentId)
                 
-                // Randevu listesini güncelle
-                val currentUser = auth.currentUser
+                // Güncel randevu listesini yeniden yükle
+                val currentUser = FirebaseAuth.getInstance().currentUser
                 if (currentUser != null) {
                     loadCustomerAppointments(currentUser.uid)
                 }
             } catch (e: Exception) {
-                _appointmentsState.value = AppointmentsState.Error(e.message ?: "Randevu iptal edilemedi")
+                _appointmentsState.value = AppointmentsState.Error("Randevu iptal edilirken hata oluştu: ${e.message}")
             }
         }
     }

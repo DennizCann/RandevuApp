@@ -68,6 +68,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.R
 import androidx.compose.ui.text.style.TextAlign
+import com.denizcan.randevuapp.model.Appointment
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -122,12 +123,14 @@ fun NavGraph(navController: NavHostController) {
                 onLoginClick = { email, password ->
                     authViewModel.signIn(email, password, isBusinessLogin.value)
                 },
-                onRegisterClick = {
-                    if (isBusinessLogin.value) {
-                        navController.navigate(Screen.BusinessRegister.route)
-                    } else {
-                        navController.navigate(Screen.CustomerRegister.route)
-                    }
+                onCustomerRegisterClick = {
+                    navController.navigate(Screen.CustomerRegister.route)
+                },
+                onBusinessRegisterClick = {
+                    navController.navigate(Screen.BusinessRegister.route)
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
                 },
                 isBusinessLogin = isBusinessLogin.value,
                 onSwitchLoginType = { isBusinessLogin.value = !isBusinessLogin.value }
@@ -322,7 +325,6 @@ fun NavGraph(navController: NavHostController) {
                         onAppointmentsClick = {
                             navController.navigate(Screen.CustomerAppointments.route)
                         },
-                        onSettingsClick = { navController.navigate(Screen.Settings.route) },
                         onLogoutClick = {
                             // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()
@@ -369,7 +371,6 @@ fun NavGraph(navController: NavHostController) {
                         onRequestsClick = {
                             navController.navigate(Screen.AppointmentRequests.createRoute(currentState.business.id))
                         },
-                        onSettingsClick = { navController.navigate(Screen.Settings.route) },
                         onLogoutClick = {
                             // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()

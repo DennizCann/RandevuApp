@@ -183,11 +183,15 @@ class FirebaseService {
 
     suspend fun updateAppointmentStatus(appointmentId: String, status: AppointmentStatus) {
         try {
-            firestore.collection("appointments")
+            val db = Firebase.firestore
+            db.collection("appointments")
                 .document(appointmentId)
                 .update("status", status.name)
                 .await()
+            
+            Log.d("FirebaseService", "Randevu durumu güncellendi: $appointmentId -> $status")
         } catch (e: Exception) {
+            Log.e("FirebaseService", "Randevu durumu güncellenirken hata", e)
             throw e
         }
     }

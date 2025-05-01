@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.MainActivity
 import com.denizcan.randevuapp.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,94 +23,91 @@ fun BusinessHomeScreen(
     onWorkingHoursClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onRequestsClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Üst Bar
-        TopAppBar(
-            title = { Text(stringResource(id = R.string.app_name)) },
-            actions = {
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = stringResource(id = R.string.settings)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Hoş Geldin, $businessName") },
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            // İstatistikler kartı
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Bekleyen Randevu Talepleri",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = pendingAppointments.toString(),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
-        )
 
-        Text(
-            text = businessName,
-            style = MaterialTheme.typography.headlineMedium
-        )
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // İstatistikler
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+            // Menü Butonları
+            Button(
+                onClick = onWorkingHoursClick,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = stringResource(id = R.string.pending_appointments),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = pendingAppointments.toString(),
-                    style = MaterialTheme.typography.headlineLarge
-                )
+                Text("Çalışma Saatleri")
             }
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Menü Butonları
-        Button(
-            onClick = onWorkingHoursClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.working_hours))
-        }
+            Button(
+                onClick = onCalendarClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.appointments))
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = onCalendarClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.appointments))
-        }
+            Button(
+                onClick = onRequestsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.appointment_requests))
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = onRequestsClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.appointment_requests))
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Çıkış Butonu
-        val context = LocalContext.current
-        OutlinedButton(
-            onClick = {
-                Log.d("BusinessHomeScreen", "Logout button was pressed")
-                MainActivity.logout(context)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(id = R.string.logout))
+            // Çıkış Butonu
+            val context = LocalContext.current
+            OutlinedButton(
+                onClick = {
+                    Log.d("BusinessHomeScreen", "Logout button was pressed")
+                    MainActivity.logout(context)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(id = R.string.logout))
+            }
         }
     }
 } 

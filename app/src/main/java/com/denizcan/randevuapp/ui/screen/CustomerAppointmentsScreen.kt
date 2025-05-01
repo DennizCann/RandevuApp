@@ -70,7 +70,9 @@ private fun AppointmentCard(
     val currentLocale = LocalContext.current.resources.configuration.locales.get(0)
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
         colors = CardDefaults.cardColors(
             containerColor = when (appointment.status) {
                 AppointmentStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer
@@ -137,7 +139,9 @@ private fun AppointmentCard(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            if (appointment.status == AppointmentStatus.CONFIRMED) {
+            if (appointment.status == AppointmentStatus.CONFIRMED || 
+                appointment.status == AppointmentStatus.PENDING) {
+                
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Button(
