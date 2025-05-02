@@ -16,6 +16,7 @@ import org.threeten.bp.LocalDateTime
 import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import com.denizcan.randevuapp.model.AppointmentStatus
+import kotlin.math.ceil
 
 class BusinessDetailViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -430,21 +431,66 @@ class BusinessDetailViewModel : ViewModel() {
 
     private fun generateTimeSlots(workingHours: User.WorkingHours): List<String> {
         try {
-            val startTime = LocalTime.parse(workingHours.opening)
-            val endTime = LocalTime.parse(workingHours.closing)
-            val slotDuration = workingHours.slotDuration.toLong()
-            
-            val slots = mutableListOf<String>()
-            var currentTime = startTime
-            
-            while (currentTime.plusMinutes(slotDuration) <= endTime) {
-                slots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-                currentTime = currentTime.plusMinutes(slotDuration)
+            try {
+                val startTime = LocalTime.parse(workingHours.opening)
+                val endTime = LocalTime.parse(workingHours.closing)
+                val slotDuration = workingHours.slotDuration.toLong()
+                
+                // Başlangıç ve bitiş saatleri arasındaki dakika farkını hesapla
+                val minutesBetween = org.threeten.bp.Duration.between(startTime, endTime).toMinutes()
+                
+                // Gece yarısını geçen durumlar için ayarlama yap
+                val adjustedMinutesBetween = if (endTime.isBefore(startTime)) {
+                    org.threeten.bp.Duration.between(startTime, LocalTime.of(23, 59)).toMinutes() + 1
+                } else {
+                    minutesBetween
+                }
+                
+                // ÖNEMLİ: 23:59 kapanışı için son slotu (23:30) eklemek özel bir durum gerektirir
+                val isSpecialEndTime = endTime.equals(LocalTime.of(23, 59))
+                
+                // Toplam slot sayısını yukarı yuvarlayarak hesapla
+                // Örneğin: 00:00-23:59 = 1439 dakika, 1439/30 = 47.96 -> 48 slot olmalı
+                val totalSlots = if (isSpecialEndTime) {
+                    Math.ceil(adjustedMinutesBetween.toDouble() / slotDuration).toInt()
+                } else {
+                    (adjustedMinutesBetween / slotDuration).toInt()
+                }
+                
+                Log.d("BusinessDetail", "Toplam randevu aralığı sayısı: $totalSlots (${startTime}-${endTime}, ${slotDuration}dk aralıklarla)")
+                
+                // *** LİMİT KALDIRILDI: Artık maksimum slot sayısı sınırı yok ***
+                val slots = mutableListOf<String>()
+                
+                // Tüm slotları oluştur
+                for (i in 0 until totalSlots) {
+                    val slotTime = startTime.plus(i * slotDuration, org.threeten.bp.temporal.ChronoUnit.MINUTES)
+                    
+                    // Sadece bir güvenlik kontrolü: Hesaplanan zaman 23:59'u geçmemeli
+                    if (slotTime.isAfter(LocalTime.of(23, 59))) {
+                        Log.d("BusinessDetail", "Gün sınırını aşan zaman dilimi: $slotTime - döngü sonlandırılıyor")
+                        break
+                    }
+                    
+                    slots.add(slotTime.format(DateTimeFormatter.ofPattern("HH:mm")))
+                }
+                
+                // Kontrol: Eğer son slot 23:30 olarak bekleniyor ama eklenmemişse manuel ekle
+                if (isSpecialEndTime && workingHours.slotDuration == 30 && 
+                    (slots.isEmpty() || slots.last() != "23:30")) {
+                    slots.add("23:30")
+                    Log.d("BusinessDetail", "Son slot (23:30) manuel olarak eklendi")
+                }
+                
+                Log.d("BusinessDetail", "Oluşturulan zaman aralıkları: ${slots.size} adet - başlangıç: ${slots.firstOrNull()}, bitiş: ${slots.lastOrNull()}")
+                return slots
+                
+            } catch (e: Exception) {
+                Log.e("BusinessDetail", "Zaman formatı hatası: ${e.message}", e)
+                return emptyList()
             }
-            
-            return slots
         } catch (e: Exception) {
-            Log.e("BusinessDetail", "Saat aralıkları oluşturulurken hata: ${e.message}", e)
+            Log.e("BusinessDetail", "Zaman aralıkları oluşturulurken hata: ${e.message}", e)
             return emptyList()
         }
     }

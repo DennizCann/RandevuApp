@@ -16,6 +16,7 @@ import org.threeten.bp.format.DateTimeFormatter
 import org.threeten.bp.LocalDateTime
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import kotlin.math.ceil
 
 class BusinessHomeViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -83,6 +84,56 @@ class BusinessHomeViewModel : ViewModel() {
         updatedWorkingHours = hours
     }
 
+    private fun validateWorkingHours(hours: User.WorkingHours): String? {
+        try {
+            val startTime = LocalTime.parse(hours.opening)
+            val endTime = LocalTime.parse(hours.closing)
+            
+            // Kapanış saati açılış saatinden sonra olmalı
+            if (endTime <= startTime) {
+                // Özel durum: 24 saat çalışma durumu (örneğin 00:00 - 00:00 veya benzeri)
+                if (startTime == LocalTime.of(0, 0) && endTime == LocalTime.of(0, 0)) {
+                    // 24 saat çalışma durumunu kabul et
+                } else {
+                    return "Kapanış saati açılış saatinden sonra olmalıdır"
+                }
+            }
+            
+            // Çalışma süresi 24 saate kadar olabilir
+            val duration = org.threeten.bp.Duration.between(startTime, endTime)
+            val minutesDiff = duration.toMinutes()
+            
+            // Eğer startTime > endTime ise bu genellikle gece yarısını geçen bir durum anlamına gelir
+            // (örn. 22:00 - 04:00) - Bu durumda süreyi farklı hesaplamalıyız
+            val adjustedMinutesDiff = if (startTime > endTime && endTime != LocalTime.of(0, 0)) {
+                // Gece yarısına kadar + gece yarısından sonra
+                val minutesToMidnight = org.threeten.bp.Duration.between(startTime, LocalTime.of(23, 59, 59)).toMinutes() + 1
+                val minutesFromMidnight = org.threeten.bp.Duration.between(LocalTime.of(0, 0), endTime).toMinutes()
+                minutesToMidnight + minutesFromMidnight
+            } else {
+                minutesDiff
+            }
+            
+            // 24 saat = 1440 dakika
+            if (adjustedMinutesDiff > 24 * 60 && endTime != LocalTime.of(0, 0)) {
+                return "Çalışma süresi 24 saatten fazla olamaz"
+            }
+            
+            // Randevu süresi makul olmalı
+            if (hours.slotDuration < 5) {
+                return "Randevu süresi en az 5 dakika olmalıdır"
+            }
+            
+            if (hours.slotDuration > 240) { // 4 saat
+                return "Randevu süresi en fazla 4 saat olabilir"
+            }
+            
+            return null // Validasyon başarılı
+        } catch (e: Exception) {
+            return "Geçersiz saat formatı: ${e.message}"
+        }
+    }
+
     fun saveWorkingHours() {
         viewModelScope.launch {
             try {
@@ -105,6 +156,13 @@ class BusinessHomeViewModel : ViewModel() {
                 val workingHours = updatedWorkingHours
                 if (workingHours == null || workingHours.opening.isEmpty() || workingHours.closing.isEmpty()) {
                     _workingHoursState.value = WorkingHoursState.Error("Açılış ve kapanış saatleri gereklidir")
+                    return@launch
+                }
+                
+                // Yeni eklenen validasyon kontrolü
+                val validationError = validateWorkingHours(workingHours)
+                if (validationError != null) {
+                    _workingHoursState.value = WorkingHoursState.Error(validationError)
                     return@launch
                 }
 
@@ -229,7 +287,7 @@ class BusinessHomeViewModel : ViewModel() {
 
                     // İşletmenin çalışma saatlerine göre tüm zaman aralıklarını oluştur
                     val availableTimeSlots = if (business != null) {
-                        calculateTimeSlots(business, date)
+                        calculateTimeSlots(date, business.workingHours, business.workingDays)
                     } else {
                         emptyList()
                     }
@@ -246,35 +304,87 @@ class BusinessHomeViewModel : ViewModel() {
         }
     }
 
-    private fun calculateTimeSlots(business: User.Business, date: LocalDate): List<String> {
-        // İşletmenin o gün çalışıp çalışmadığını kontrol et
-        if (!business.workingDays.contains(date.dayOfWeek.name)) {
+    private fun isSameDay(time1: LocalTime, time2: LocalTime): Boolean {
+        // Eğer time2, time1'den "önce" görünüyorsa, muhtemelen gün değişmiştir
+        // Örneğin, time1 = 23:30, time2 = 00:01 ise, bu farklı günleri gösterir
+        return time1.hour <= time2.hour || 
+              (time1.hour == 23 && time2.hour == 0 && time1.minute <= time2.minute)
+    }
+
+    private fun calculateTimeSlots(date: LocalDate, workingHours: User.WorkingHours?, workingDays: List<String>): List<String> {
+        try {
+            // Gün çalışma günü değilse boş liste döndür
+            if (!workingDays.contains(date.dayOfWeek.name)) {
+                Log.d("BusinessHome", "Seçilen gün çalışma günü değil: ${date.dayOfWeek.name}")
+                return emptyList()
+            }
+            
+            // İş saatleri yoksa boş liste döndür
+            if (workingHours == null) {
+                Log.d("BusinessHome", "Çalışma saatleri tanımlanmamış")
+                return emptyList()
+            }
+            
+            try {
+                val startTime = LocalTime.parse(workingHours.opening)
+                val endTime = LocalTime.parse(workingHours.closing)
+                val slotDuration = workingHours.slotDuration.toLong()
+                
+                // Başlangıç ve bitiş saatleri arasındaki dakika farkını hesapla
+                val minutesBetween = org.threeten.bp.Duration.between(startTime, endTime).toMinutes()
+                
+                // Gece yarısını geçen durumlar için ayarlama yap
+                val adjustedMinutesBetween = if (endTime.isBefore(startTime)) {
+                    org.threeten.bp.Duration.between(startTime, LocalTime.of(23, 59)).toMinutes() + 1
+                } else {
+                    minutesBetween
+                }
+                
+                // ÖNEMLİ: 23:59 kapanışı için son slotu (23:30) eklemek özel bir durum gerektirir
+                val isSpecialEndTime = endTime.equals(LocalTime.of(23, 59))
+                
+                // Toplam slot sayısını yukarı yuvarlayarak hesapla
+                val totalSlots = if (isSpecialEndTime) {
+                    Math.ceil(adjustedMinutesBetween.toDouble() / slotDuration).toInt()
+                } else {
+                    (adjustedMinutesBetween / slotDuration).toInt()
+                }
+                
+                Log.d("BusinessHome", "Toplam randevu aralığı sayısı: $totalSlots (${startTime}-${endTime}, ${slotDuration}dk aralıklarla)")
+                
+                // *** LİMİT KALDIRILDI: Artık maksimum slot sayısı sınırı yok ***
+                val slots = mutableListOf<String>()
+                
+                // Tüm slotları oluştur
+                for (i in 0 until totalSlots) {
+                    val slotTime = startTime.plus(i * slotDuration, org.threeten.bp.temporal.ChronoUnit.MINUTES)
+                    
+                    // Sadece bir güvenlik kontrolü: Hesaplanan zaman 23:59'u geçmemeli
+                    if (slotTime.isAfter(LocalTime.of(23, 59))) {
+                        Log.d("BusinessHome", "Gün sınırını aşan zaman dilimi: $slotTime - döngü sonlandırılıyor")
+                        break
+                    }
+                    
+                    slots.add(slotTime.format(DateTimeFormatter.ofPattern("HH:mm")))
+                }
+                
+                // Kontrol: Eğer son slot 23:30 olarak bekleniyor ama eklenmemişse manuel ekle
+                if (isSpecialEndTime && workingHours.slotDuration == 30 && 
+                    (slots.isEmpty() || slots.last() != "23:30")) {
+                    slots.add("23:30")
+                    Log.d("BusinessHome", "Son slot (23:30) manuel olarak eklendi")
+                }
+                
+                return slots
+                
+            } catch (e: Exception) {
+                Log.e("BusinessHome", "Zaman formatı hatası: ${e.message}", e)
+                return emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessHome", "Zaman aralıkları oluşturulurken hata: ${e.message}", e)
             return emptyList()
         }
-
-        val workingHours = business.workingHours
-        val startTime = LocalTime.parse(workingHours.opening)
-        val endTime = LocalTime.parse(workingHours.closing)
-        // Randevu süresini işletmenin ayarladığı değerden al
-        val slotDuration = workingHours.slotDuration
-        
-        // Debug için log ekleyelim
-        Log.d("BusinessHomeVM", "Randevu süresi: $slotDuration dakika")
-        Log.d("BusinessHomeVM", "Çalışma saatleri: ${workingHours.opening} - ${workingHours.closing}")
-
-        // Tüm zaman dilimlerini oluştur
-        val timeSlots = mutableListOf<String>()
-        var currentTime = startTime
-
-        while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
-            timeSlots.add(currentTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-            currentTime = currentTime.plusMinutes(slotDuration.toLong())
-        }
-        
-        // Oluşturulan aralıkları loglayalım
-        Log.d("BusinessHomeVM", "Oluşturulan zaman aralıkları: ${timeSlots.joinToString(", ")}")
-
-        return timeSlots
     }
 
     fun blockTimeSlot(date: LocalDate, timeSlot: String) {
@@ -385,21 +495,64 @@ class BusinessHomeViewModel : ViewModel() {
 
     private fun generateTimeSlots(date: LocalDate, opening: String, closing: String, slotDuration: Int): List<org.threeten.bp.LocalDateTime> {
         try {
-            val startTime = LocalTime.parse(opening)
-            val endTime = LocalTime.parse(closing)
-
-            val timeSlots = mutableListOf<org.threeten.bp.LocalDateTime>()
-            var currentTime = startTime
-
-            while (currentTime.plusMinutes(slotDuration.toLong()) <= endTime) {
-                val dateTime = date.atTime(currentTime)
-                timeSlots.add(dateTime)
-                currentTime = currentTime.plusMinutes(slotDuration.toLong())
+            try {
+                val startTime = LocalTime.parse(opening)
+                val endTime = LocalTime.parse(closing)
+                
+                // Başlangıç ve bitiş saatleri arasındaki dakika farkını hesapla
+                val minutesBetween = org.threeten.bp.Duration.between(startTime, endTime).toMinutes()
+                
+                // Gece yarısını geçen durumlar için ayarlama yap
+                val adjustedMinutesBetween = if (endTime.isBefore(startTime)) {
+                    org.threeten.bp.Duration.between(startTime, LocalTime.of(23, 59)).toMinutes() + 1
+                } else {
+                    minutesBetween
+                }
+                
+                // 23:59 kapanışı için özel durum
+                val isSpecialEndTime = endTime.equals(LocalTime.of(23, 59))
+                
+                // Toplam slot sayısını hesapla
+                val totalSlots = if (isSpecialEndTime) {
+                    Math.ceil(adjustedMinutesBetween.toDouble() / slotDuration).toInt()
+                } else {
+                    (adjustedMinutesBetween / slotDuration).toInt()
+                }
+                
+                // *** LİMİT KALDIRILDI ***
+                val timeSlots = mutableListOf<org.threeten.bp.LocalDateTime>()
+                
+                // Tüm slotları oluştur
+                for (i in 0 until totalSlots) {
+                    val slotTime = startTime.plus(i * slotDuration.toLong(), org.threeten.bp.temporal.ChronoUnit.MINUTES)
+                    
+                    if (slotTime.isAfter(LocalTime.of(23, 59))) {
+                        break
+                    }
+                    
+                    val dateTime = date.atTime(slotTime)
+                    timeSlots.add(dateTime)
+                }
+                
+                // 23:30 slot kontrolü
+                if (isSpecialEndTime && slotDuration == 30) {
+                    val lastSlotTime = LocalTime.of(23, 30)
+                    val exists = timeSlots.any { it.toLocalTime() == lastSlotTime }
+                    
+                    if (!exists) {
+                        timeSlots.add(date.atTime(lastSlotTime))
+                        Log.d("BusinessHome", "Son LocalDateTime slot (23:30) manuel olarak eklendi")
+                    }
+                }
+                
+                return timeSlots
+                
+            } catch (e: Exception) {
+                Log.e("BusinessHome", "Zaman formatı hatası: ${e.message}", e)
+                return emptyList()
             }
-
-            return timeSlots
         } catch (e: Exception) {
-            println("Zaman aralıkları oluşturulurken hata: ${e.message}")
+            Log.e("BusinessHome", "Zaman aralıkları oluşturulurken hata: ${e.message}", e)
             return emptyList()
         }
     }

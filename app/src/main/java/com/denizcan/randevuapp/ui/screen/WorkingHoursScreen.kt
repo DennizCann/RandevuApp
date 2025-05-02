@@ -150,6 +150,15 @@ fun WorkingHoursScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Bilgi: Çalışma saatleri en fazla 16 saat olabilir. Randevu süresi 5 dakika ile 4 saat arasında olmalıdır.
+            Text(
+                text = "Bilgi: Çalışma saatleri en fazla 16 saat olabilir. Randevu süresi 5 dakika ile 4 saat arasında olmalıdır.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 

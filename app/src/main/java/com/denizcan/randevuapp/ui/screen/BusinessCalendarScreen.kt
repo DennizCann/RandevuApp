@@ -13,10 +13,8 @@ import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
 import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.LocalDate
-import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
-import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,9 +71,13 @@ fun BusinessCalendarScreen(
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(availableTimeSlots) { timeSlot ->
+                    items(
+                        // Sadece temel filtreleme yapılıyor - ek filtreler artık gerekli değil çünkü
+                        // slot listesi oluşturulurken doğru hesaplanıyor
+                        availableTimeSlots
+                    ) { timeSlot ->
                         // Bu zaman diliminde randevu var mı kontrol et
                         val appointment = appointments.find {
                             it.dateTime.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) == timeSlot
