@@ -25,7 +25,7 @@ fun CustomerHomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hoş Geldin, $customerName") },
+                title = { Text(stringResource(id = R.string.welcome_customer, customerName)) },
             )
         },
     ) { paddingValues ->
@@ -35,7 +35,7 @@ fun CustomerHomeScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = stringResource(id = R.string.welcome),
+                text = stringResource(id = R.string.welcome_customer, customerName),
                 style = MaterialTheme.typography.headlineMedium
             )
 

@@ -23,8 +23,8 @@ import com.denizcan.randevuapp.ui.theme.RandevuAppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.denizcan.randevuapp.utils.LanguageManager
 import com.denizcan.randevuapp.viewmodel.BusinessListViewModel
+import com.denizcan.randevuapp.viewmodel.AuthViewModel
 import java.lang.ref.WeakReference
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
     
     private lateinit var languageManager: LanguageManager
     private val viewModel: BusinessListViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
     
     override fun attachBaseContext(newBase: Context) {
         languageManager = LanguageManager(newBase)

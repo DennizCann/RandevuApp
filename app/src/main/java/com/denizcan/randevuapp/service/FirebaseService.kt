@@ -551,4 +551,27 @@ class FirebaseService {
             throw e
         }
     }
+
+    suspend fun saveAppointment(appointment: Appointment) {
+        try {
+            val db = Firebase.firestore
+            db.collection("appointments").document(appointment.id)
+                .set(mapOf(
+                    "id" to appointment.id,
+                    "businessId" to appointment.businessId,
+                    "businessName" to appointment.businessName,
+                    "customerId" to appointment.customerId,
+                    "dateTime" to appointment.dateTime.toString(),
+                    "status" to appointment.status.toString(),
+                    "note" to appointment.note,
+                    "createdAt" to System.currentTimeMillis()
+                ))
+                .await()
+            
+            Log.d("FirebaseService", "Randevu başarıyla kaydedildi: ${appointment.id}")
+        } catch (e: Exception) {
+            Log.e("FirebaseService", "Randevu kaydedilirken hata: ${e.message}")
+            throw e
+        }
+    }
 } 

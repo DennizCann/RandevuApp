@@ -17,6 +17,9 @@ import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import com.denizcan.randevuapp.model.AppointmentStatus
 import kotlin.math.ceil
+import androidx.compose.ui.res.stringResource
+import com.denizcan.randevuapp.R
+import java.util.*
 
 class BusinessDetailViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -208,6 +211,7 @@ class BusinessDetailViewModel : ViewModel() {
                             Appointment(
                                 id = doc.id,
                                 businessId = business.id,
+                                businessName = business.businessName,
                                 customerId = data["customerId"] as? String ?: "",
                                 dateTime = dateTime,
                                 status = appointmentStatus,
@@ -373,60 +377,43 @@ class BusinessDetailViewModel : ViewModel() {
         appointmentNote = note
     }
 
-    fun createAppointment(customerId: String) {
-        // İşlemi başlat
-        isCreatingAppointment = true
-        
-        viewModelScope.launch {
-            try {
-                Log.d("BusinessDetail", "Randevu oluşturma başlıyor...")
-
-                val currentState = _uiState.value
-                if (currentState !is BusinessDetailState.Success) {
-                    Log.e("BusinessDetail", "Randevu oluşturulamadı: Geçersiz durum")
-                    isCreatingAppointment = false
-                    return@launch
-                }
-                
-                if (currentState.selectedTime == null) {
-                    Log.e("BusinessDetail", "Randevu oluşturulamadı: Saat seçilmemiş")
-                    isCreatingAppointment = false
-                    return@launch
-                }
-                
-                // Burada ÖNEMLİ: selectedDateTime zaten updateSelectedTime'da ayarlanmış olmalı
-                // Eğer null ise, burada yeniden oluşturalım
-                val dateTimeToUse = selectedDateTime ?: LocalDateTime.of(
-                    currentState.selectedDate,
-                    LocalTime.parse(currentState.selectedTime, DateTimeFormatter.ofPattern("HH:mm"))
-                )
-                
-                Log.d("BusinessDetail", "Randevu oluşturulacak zaman: $dateTimeToUse")
-                Log.d("BusinessDetail", "Randevu oluşturuluyor - İşletme: ${currentState.business.id}, Müşteri: $customerId")
-                
-                Log.d("BusinessDetail", "FirebaseService.createAppointment çağrılıyor")
-                
-                try {
-                    firebaseService.createAppointment(
-                        businessId = currentState.business.id,
-                        customerId = customerId,
-                        dateTime = dateTimeToUse,
-                        note = currentState.note
-                    )
-                    Log.d("BusinessDetail", "Randevu başarıyla oluşturuldu")
-                } catch (e: Exception) {
-                    Log.e("BusinessDetail", "Randevu oluşturma Firebase hatası", e)
-                    e.printStackTrace()
-                    throw e
-                }
-                
-            } catch (e: Exception) {
-                Log.e("BusinessDetail", "Randevu oluşturma HATA: ${e.message}")
-                e.printStackTrace()
-            } finally {
-                isCreatingAppointment = false
-            }
+    suspend fun createAppointment(customerId: String): String {
+        // Mevcut state'den business bilgisini al
+        val currentState = _uiState.value
+        if (currentState !is BusinessDetailState.Success) {
+            throw IllegalStateException("İşletme bilgisi yüklenmedan randevu oluşturulamaz")
         }
+        
+        // currentBusiness veya state'den business bilgisini al
+        val business = currentBusiness ?: currentState.business
+        
+        // Gerekli bilgileri al
+        val selectedDate = currentState.selectedDate
+        val selectedTime = currentState.selectedTime ?: throw IllegalStateException("Zaman seçilmedi")
+        val note = currentState.note
+        
+        // Tarih ve saati birleştir
+        val dateTime = LocalDateTime.of(
+            selectedDate,
+            LocalTime.parse(selectedTime, DateTimeFormatter.ofPattern("HH:mm"))
+        )
+        
+        val appointment = Appointment(
+            id = UUID.randomUUID().toString(),
+            businessId = business.id,
+            businessName = business.businessName,
+            customerId = customerId,
+            dateTime = dateTime,
+            status = AppointmentStatus.PENDING,
+            note = note
+        )
+        
+        // Veritabanı işlemleri...
+        viewModelScope.launch {
+            firebaseService.saveAppointment(appointment)
+        }
+        
+        return appointment.id
     }
 
     private fun generateTimeSlots(workingHours: User.WorkingHours): List<String> {

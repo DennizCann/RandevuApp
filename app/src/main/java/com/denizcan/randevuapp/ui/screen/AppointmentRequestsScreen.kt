@@ -7,13 +7,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.denizcan.randevuapp.R
 import com.denizcan.randevuapp.model.Appointment
 import com.denizcan.randevuapp.model.AppointmentStatus
 import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.format.DateTimeFormatter
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,48 +26,51 @@ fun AppointmentRequestsScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Randevu Talepleri",
+                title = stringResource(id = R.string.appointment_requests),
                 onBackClick = onBackClick
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues) // Scaffold padding'lerini uygula
-                .padding(16.dp)
-        ) {
-            if (appointments.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Bekleyen randevu talebi bulunmuyor")
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(appointments) { appointment ->
-                        AppointmentRequestCard(
-                            appointment = appointment,
-                            onStatusChange = onStatusChange
-                        )
-                    }
+        if (appointments.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(id = R.string.no_requests),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(appointments.filter { it.status == AppointmentStatus.PENDING }) { appointment ->
+                    AppointmentRequestCard(
+                        appointment = appointment,
+                        onStatusChange = onStatusChange
+                    )
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppointmentRequestCard(
     appointment: Appointment,
     onStatusChange: (String, AppointmentStatus) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -74,58 +78,68 @@ private fun AppointmentRequestCard(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Tarih: ${appointment.dateTime.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("tr")))}",
-                style = MaterialTheme.typography.titleMedium
+                text = appointment.businessName.ifEmpty { "İşletme: ${appointment.businessId}" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Saat: ${appointment.dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}",
+                text = stringResource(
+                    id = R.string.request_from,
+                    appointment.customerName.ifEmpty { appointment.customerId }
+                ),
                 style = MaterialTheme.typography.bodyMedium
             )
             
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Müşteri: ${if (appointment.customerName.isNotEmpty()) appointment.customerName else "İsimsiz Müşteri"}",
-                style = MaterialTheme.typography.bodyMedium
+                text = stringResource(
+                    id = R.string.date,
+                    appointment.dateTime.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy"))
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = stringResource(
+                    id = R.string.time,
+                    appointment.dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+                )
             )
             
             if (appointment.note.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                
                 Text(
                     text = "Not: ${appointment.note}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = FontStyle.Italic
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.End
             ) {
-                Button(
-                    onClick = { onStatusChange(appointment.id, AppointmentStatus.CONFIRMED) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                OutlinedButton(
+                    onClick = {
+                        onStatusChange(appointment.id, AppointmentStatus.CANCELLED)
+                    },
+                    modifier = Modifier.padding(end = 8.dp)
                 ) {
-                    Text("Onayla")
+                    Text(stringResource(id = R.string.reject))
                 }
                 
                 Button(
-                    onClick = { onStatusChange(appointment.id, AppointmentStatus.CANCELLED) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    onClick = {
+                        onStatusChange(appointment.id, AppointmentStatus.CONFIRMED)
+                    }
                 ) {
-                    Text("Reddet")
+                    Text(stringResource(id = R.string.approve))
                 }
             }
         }

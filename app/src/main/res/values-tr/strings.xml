@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">Randevu Uygulaması</string>
+    <string name="login_title">Giriş</string>
+    <string name="login_email_hint">E-posta</string>
+    <string name="login_password_hint">Şifre</string>
+    <string name="login_button">Giriş Yap</string>
+    <string name="register_button">Kayıt Ol</string>
+    <string name="login_error">Giriş başarısız: %1$s</string>
     <string name="login">Giriş Yap</string>
     <string name="register">Kayıt Ol</string>
     <string name="email">E-posta</string>
@@ -16,6 +22,7 @@
     <string name="cancel">İptal</string>
     <string name="settings">Ayarlar</string>
     <string name="language">Dil</string>
+    <string name="settings_language">Dil seçin</string>
     <string name="working_hours">Çalışma Saatleri</string>
     <string name="save_changes">Değişiklikleri Kaydet</string>
     <string name="working_days">Çalışma Günleri</string>
@@ -50,7 +57,7 @@
     <string name="phone">Telefon</string>
     <string name="sector">Sektör</string>
     <string name="save">Kaydet</string>
-    <string name="name">Ad</string>
+    <string name="name">İsim</string>
     <string name="surname">Soyad</string>
     <string name="day_monday">Pazartesi</string>
     <string name="day_tuesday">Salı</string>
@@ -75,8 +82,8 @@
     <string name="upcoming_appointments">Gelecek Randevular</string>
     <string name="past_appointments">Geçmiş Randevular</string>
     <string name="approved">Onaylandı</string>
-    <string name="pending">Beklemede</string>
-    <string name="cancelled">İptal Edildi</string>
+    <string name="pending">⏳ Beklemede</string>
+    <string name="cancelled">✕ İptal Edildi</string>
     <string name="no_appointments">Randevu yok</string>
     <string name="total_businesses">Toplam %1$d işletme (%2$d görüntüleniyor)</string>
     <string name="business_list_empty">Debug: işletme listesi boş</string>
@@ -88,11 +95,6 @@
     <string name="time">Saat: %s</string>
     <string name="no_appointments_yet">Henüz randevunuz bulunmuyor</string>
     <string name="cancel_appointment">Randevuyu İptal Et</string>
-    <string name="status_pending">Onay Bekliyor</string>
-    <string name="status_confirmed">Onaylandı</string>
-    <string name="status_cancelled">İptal Edildi</string>
-    <string name="status_completed">Tamamlandı</string>
-    <string name="status_blocked">Engellendi</string>
     <string name="business_details">İşletme Detayları</string>
     <string name="working_hours_full">Çalışma Saatleri: %s - %s</string>
     <string name="appointment_duration">Randevu Süresi: %d dakika</string>
@@ -105,9 +107,31 @@
     <string name="select_date_first">Lütfen önce bir tarih seçin</string>
     <string name="select_time_first">Lütfen bir saat dilimi seçin</string>
     <string name="closed_on_selected_day">İşletme seçilen günde kapalıdır</string>
-    <string name="phone_number">Telefon: %s</string>
+    <string name="phone_number">Telefon Numarası</string>
     <string name="address_colon">Adres: %s</string>
     <string name="appointment_confirmation_title">Randevu Talebiniz Alındı</string>
     <string name="appointment_confirmation_message">Randevu talebiniz işletmeye iletildi. İşletme talebinizi onayladığında bilgilendirileceksiniz.</string>
     <string name="go_back_to_home">Ana Sayfaya Dön</string>
+    <string name="status_unavailable">✕ Uygun Değil</string>
+    <string name="status_available">Müsait</string>
+    <string name="welcome_business">Hoş Geldin, %1$s</string>
+    <string name="welcome_customer">Hoş Geldin, %1$s</string>
+    <string name="personal_information">Kişisel Bilgileriniz</string>
+    <string name="full_name">Ad Soyad</string>
+    <string name="phone_number_input">Telefon Numarası</string>
+    <string name="business_information">İşletme Bilgileri</string>
+    <string name="calendar_button_close">Kapat</string>
+    <string name="calendar_title">Takvim</string>
+    <string name="status_confirmed">✓ Onaylandı</string>
+    <string name="status_pending">⏳ Beklemede</string>
+    <string name="status_blocked">🔒 Kapatıldı</string>
+    <string name="status_completed">✅ Tamamlandı</string>
+    <string name="date_format_pattern">d MMMM yyyy</string>
+    <string name="day_short_monday">Pzt</string>
+    <string name="day_short_tuesday">Sal</string>
+    <string name="day_short_wednesday">Çar</string>
+    <string name="day_short_thursday">Per</string>
+    <string name="day_short_friday">Cum</string>
+    <string name="day_short_saturday">Cmt</string>
+    <string name="day_short_sunday">Paz</string>
 </resources>

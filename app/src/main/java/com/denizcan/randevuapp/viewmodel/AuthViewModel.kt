@@ -1,5 +1,6 @@
 package com.denizcan.randevuapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.denizcan.randevuapp.model.User
@@ -7,6 +8,7 @@ import com.denizcan.randevuapp.service.FirebaseService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 
 class AuthViewModel : ViewModel() {
     private val firebaseService = FirebaseService()
@@ -62,6 +64,34 @@ class AuthViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Kayıt başarısız")
+            }
+        }
+    }
+
+    fun logout(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                
+                // Firebase'den çıkış yap - FirebaseService'de signOut metodu olmadığı için
+                // doğrudan FirebaseAuth.getInstance().signOut() kullan
+                FirebaseAuth.getInstance().signOut()
+                
+                // Başarılı çıkış durumunu ayarla
+                _authState.value = AuthState.Initial
+                
+                // İşlem tamamlandığında callback'i çağır
+                onComplete()
+                
+            } catch (e: Exception) {
+                // Hata durumunda bile Initial durumuna geri dön
+                _authState.value = AuthState.Initial
+                
+                // Callback'i çağır
+                onComplete()
+                
+                // Hata günlüğüne yaz
+                Log.e("AuthViewModel", "Logout failed", e)
             }
         }
     }

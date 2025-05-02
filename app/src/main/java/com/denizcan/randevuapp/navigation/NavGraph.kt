@@ -241,11 +241,15 @@ fun NavGraph(navController: NavHostController) {
             val coroutineScope = rememberCoroutineScope()
 
             CustomerInfoScreen(
-                onSaveClick = { fullName, phone ->
+                initialName = "",
+                initialPhone = "",
+                onSaveClick = { name, phone ->
                     Log.d("NavGraph", "CustomerInfoScreen'den onSaveClick çağrıldı")
-                    userInfoViewModel.saveCustomerInfo(userId, fullName, phone)
+                    userInfoViewModel.saveCustomerInfo(userId, name, phone)
                 },
-                userId = userId
+                onBackClick = {
+                    navController.popBackStack()
+                }
             )
 
             // State değişimini daha net bir şekilde izleyelim
@@ -277,10 +281,13 @@ fun NavGraph(navController: NavHostController) {
             val userInfoState = userInfoViewModel.userInfoState.collectAsState()
 
             BusinessInfoScreen(
+                initialEmail = FirebaseAuth.getInstance().currentUser?.email ?: "",
                 onSaveClick = { businessName, address, phone, sector ->
                     userInfoViewModel.saveBusinessInfo(userId, businessName, address, phone, sector)
                 },
-                userId = userId
+                onBackClick = {
+                    navController.popBackStack()
+                }
             )
 
             // İşletme bilgileri başarıyla kaydedildiğinde ana sayfaya yönlendir

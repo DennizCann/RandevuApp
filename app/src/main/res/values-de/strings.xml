@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Termin-App</string>
+    <string name="login_title">Anmeldung</string>
+    <string name="login_email_hint">E-Mail</string>
+    <string name="login_password_hint">Passwort</string>
+    <string name="login_button">Anmelden</string>
+    <string name="register_button">Registrieren</string>
+    <string name="login_error">Anmeldung fehlgeschlagen: %1$s</string>
     <string name="login">Anmelden</string>
     <string name="register">Registrieren</string>
     <string name="email">E-Mail</string>
@@ -17,6 +23,7 @@
     <string name="cancel">Abbrechen</string>
     <string name="settings">Einstellungen</string>
     <string name="language">Sprache</string>
+    <string name="settings_language">Sprache wählen</string>
     <string name="working_hours">Arbeitszeiten</string>
     <string name="save_changes">Änderungen speichern</string>
     <string name="working_days">Arbeitstage</string>
@@ -40,7 +47,7 @@
     <string name="opening_time">Öffnungszeit (HH:MM)</string>
     <string name="closing_time">Schließzeit (HH:MM)</string>
     <string name="slot_duration">Termindauer (Minuten)</string>
-    <string name="selected_days">Ausgewählte Tage</string>
+    <string name="selected_days">Ausgewählte Tage: %s</string>
     <string name="business_registration">Unternehmensregistrierung</string>
     <string name="customer_registration">Kundenregistrierung</string>
     <string name="confirm_password">Passwort bestätigen</string>
@@ -89,11 +96,11 @@
     <string name="time">Zeit: %s</string>
     <string name="no_appointments_yet">Sie haben noch keine Termine</string>
     <string name="cancel_appointment">Termin stornieren</string>
-    <string name="status_pending">Warten auf Bestätigung</string>
-    <string name="status_confirmed">Bestätigt</string>
-    <string name="status_cancelled">Storniert</string>
-    <string name="status_completed">Abgeschlossen</string>
-    <string name="status_blocked">Blockiert</string>
+    <string name="status_pending">⏳ Ausstehend</string>
+    <string name="status_confirmed">✓ Bestätigt</string>
+    <string name="status_cancelled">✕ Storniert</string>
+    <string name="status_blocked">🔒 Blockiert</string>
+    <string name="status_completed">✅ Abgeschlossen</string>
     <string name="business_details">Unternehmensdetails</string>
     <string name="working_hours_full">Arbeitszeiten: %s - %s</string>
     <string name="appointment_duration">Termindauer: %d Minuten</string>
@@ -108,4 +115,27 @@
     <string name="closed_on_selected_day">Unternehmen ist am ausgewählten Tag geschlossen</string>
     <string name="phone_number">Telefon: %s</string>
     <string name="address_colon">Adresse: %s</string>
+    <string name="appointment_status_pending">Warten auf Bestätigung</string>
+    <string name="appointment_status_confirmed">Bestätigt</string>
+    <string name="appointment_status_cancelled">Storniert</string>
+    <string name="status_unavailable">✕ Nicht verfügbar</string>
+    <string name="status_available">✓ Verfügbar</string>
+    <string name="welcome_business">Willkommen, %1$s</string>
+    <string name="welcome_customer">Willkommen, %1$s</string>
+    <string name="personal_information">Persönliche Informationen</string>
+    <string name="full_name">Vollständiger Name</string>
+    <string name="phone_number_input">Telefonnummer</string>
+    <string name="business_information">Geschäftsinformationen</string>
+    <string name="calendar_button_close">Schließen</string>
+    <string name="calendar_button_open">Öffnen</string>
+    <string name="calendar_title">Kalender</string>
+    <string name="date_format_pattern">d. MMMM yyyy</string>
+    <string name="day_short_monday">Mo</string>
+    <string name="day_short_tuesday">Di</string>
+    <string name="day_short_wednesday">Mi</string>
+    <string name="day_short_thursday">Do</string>
+    <string name="day_short_friday">Fr</string>
+    <string name="day_short_saturday">Sa</string>
+    <string name="day_short_sunday">So</string>
+    <string name="working_hours_info">Die Arbeitszeit kann höchstens 16 Stunden betragen. Die Termindauer muss zwischen 5 Minuten und 4 Stunden liegen.</string>
 </resources>

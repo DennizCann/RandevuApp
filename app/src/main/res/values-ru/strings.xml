@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Приложение для записи</string>
+    <string name="login_title">Вход</string>
+    <string name="login_email_hint">Электронная почта</string>
+    <string name="login_password_hint">Пароль</string>
+    <string name="login_button">Войти</string>
+    <string name="register_button">Регистрация</string>
+    <string name="login_error">Ошибка входа: %1$s</string>
     <string name="login">Войти</string>
     <string name="register">Регистрация</string>
     <string name="email">Эл. почта</string>
@@ -17,6 +23,7 @@
     <string name="cancel">Отмена</string>
     <string name="settings">Настройки</string>
     <string name="language">Язык</string>
+    <string name="settings_language">Выберите язык</string>
     <string name="working_hours">Рабочие часы</string>
     <string name="save_changes">Сохранить изменения</string>
     <string name="working_days">Рабочие дни</string>
@@ -40,7 +47,7 @@
     <string name="opening_time">Время открытия (ЧЧ:ММ)</string>
     <string name="closing_time">Время закрытия (ЧЧ:ММ)</string>
     <string name="slot_duration">Продолжительность записи (минуты)</string>
-    <string name="selected_days">Выбранные дни</string>
+    <string name="selected_days">Выбранные дни: %s</string>
     <string name="business_registration">Регистрация компании</string>
     <string name="customer_registration">Регистрация клиента</string>
     <string name="confirm_password">Подтвердите пароль</string>
@@ -89,11 +96,13 @@
     <string name="time">Время: %s</string>
     <string name="no_appointments_yet">У вас еще нет записей</string>
     <string name="cancel_appointment">Отменить запись</string>
-    <string name="status_pending">Ожидает подтверждения</string>
-    <string name="status_confirmed">Подтверждено</string>
-    <string name="status_cancelled">Отменено</string>
-    <string name="status_completed">Завершено</string>
-    <string name="status_blocked">Заблокировано</string>
+    <string name="status_confirmed">✓ Подтверждено</string>
+    <string name="status_pending">⏳ В ожидании</string>
+    <string name="status_cancelled">✕ Отменено</string>
+    <string name="status_blocked">🔒 Заблокировано</string>
+    <string name="status_completed">✅ Завершено</string>
+    <string name="status_unavailable">✕ Недоступно</string>
+    <string name="status_available">✓ Доступно</string>
     <string name="business_details">Детали компании</string>
     <string name="working_hours_full">Рабочие часы: %s - %s</string>
     <string name="appointment_duration">Продолжительность: %d минут</string>
@@ -108,4 +117,22 @@
     <string name="closed_on_selected_day">Компания закрыта в выбранный день</string>
     <string name="phone_number">Телефон: %s</string>
     <string name="address_colon">Адрес: %s</string>
+    <string name="welcome_business">Добро пожаловать, %1$s</string>
+    <string name="welcome_customer">Добро пожаловать, %1$s</string>
+    <string name="personal_information">Личная информация</string>
+    <string name="full_name">ФИО</string>
+    <string name="phone_number_input">Номер телефона</string>
+    <string name="business_information">Информация о бизнесе</string>
+    <string name="calendar_button_close">Закрыть</string>
+    <string name="calendar_button_open">Открыть</string>
+    <string name="calendar_title">Календарь</string>
+    <string name="date_format_pattern">d MMMM yyyy</string>
+    <string name="day_short_monday">Пн</string>
+    <string name="day_short_tuesday">Вт</string>
+    <string name="day_short_wednesday">Ср</string>
+    <string name="day_short_thursday">Чт</string>
+    <string name="day_short_friday">Пт</string>
+    <string name="day_short_saturday">Сб</string>
+    <string name="day_short_sunday">Вс</string>
+    <string name="working_hours_info">Рабочее время может составлять не более 16 часов. Продолжительность приема должна быть от 5 минут до 4 часов.</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.denizcan.randevuapp.ui.screen
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -28,19 +29,23 @@ fun BusinessHomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hoş Geldin, $businessName") },
+                title = { Text(stringResource(id = R.string.welcome_business, businessName)) }
             )
-        },
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // İstatistikler kartı
+            // Bekleyen Randevu Kartı
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onRequestsClick() },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -48,37 +53,34 @@ fun BusinessHomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Bekleyen Randevu Talepleri",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = stringResource(id = R.string.pending_appointments),
+                        style = MaterialTheme.typography.titleMedium
                     )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
                         text = pendingAppointments.toString(),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.displayLarge
                     )
                 }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Menü Butonları
+            // Çalışma Saatleri Butonu
             Button(
                 onClick = onWorkingHoursClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Çalışma Saatleri")
+                Text(stringResource(id = R.string.working_hours))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Randevular Butonu
             Button(
                 onClick = onCalendarClick,
                 modifier = Modifier.fillMaxWidth()
@@ -88,6 +90,7 @@ fun BusinessHomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Randevu Talepleri Butonu
             Button(
                 onClick = onRequestsClick,
                 modifier = Modifier.fillMaxWidth()
@@ -101,7 +104,7 @@ fun BusinessHomeScreen(
             val context = LocalContext.current
             OutlinedButton(
                 onClick = {
-                    Log.d("BusinessHomeScreen", "Logout button was pressed")
+                    // MainActivity.logout metodunu kullan
                     MainActivity.logout(context)
                 },
                 modifier = Modifier.fillMaxWidth()

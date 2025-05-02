@@ -144,18 +144,27 @@ fun WorkingHoursScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Debug bilgileri (seçimli)
+            // Seçilen günleri gösterme
+            val dayNames = mapOf(
+                "MONDAY" to stringResource(id = R.string.day_monday),
+                "TUESDAY" to stringResource(id = R.string.day_tuesday),
+                "WEDNESDAY" to stringResource(id = R.string.day_wednesday),
+                "THURSDAY" to stringResource(id = R.string.day_thursday),
+                "FRIDAY" to stringResource(id = R.string.day_friday),
+                "SATURDAY" to stringResource(id = R.string.day_saturday),
+                "SUNDAY" to stringResource(id = R.string.day_sunday)
+            )
+            val selectedDaysText = localWorkingDays.map { dayNames[it] ?: it }.joinToString(", ")
             Text(
-                text = stringResource(id = R.string.selected_days) + ": " + localWorkingDays.joinToString(", "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = stringResource(id = R.string.selected_days, selectedDaysText),
+                style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Bilgi: Çalışma saatleri en fazla 16 saat olabilir. Randevu süresi 5 dakika ile 4 saat arasında olmalıdır.
+            // Bilgi metni
             Text(
-                text = "Bilgi: Çalışma saatleri en fazla 16 saat olabilir. Randevu süresi 5 dakika ile 4 saat arasında olmalıdır.",
+                text = stringResource(id = R.string.working_hours_info),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

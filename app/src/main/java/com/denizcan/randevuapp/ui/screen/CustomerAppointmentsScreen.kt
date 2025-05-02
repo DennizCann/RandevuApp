@@ -16,6 +16,7 @@ import com.denizcan.randevuapp.model.AppointmentStatus
 import com.denizcan.randevuapp.ui.components.AppTopBar
 import org.threeten.bp.format.DateTimeFormatter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,22 +109,22 @@ private fun AppointmentCard(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = stringResource(
-                    id = R.string.business,
-                    appointment.businessName.ifEmpty { appointment.businessId }
-                ),
-                style = MaterialTheme.typography.bodyMedium
+                text = appointment.businessName.ifEmpty { appointment.businessId },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
             )
             
             Spacer(modifier = Modifier.height(8.dp))
 
             val statusTextId = when (appointment.status) {
-                AppointmentStatus.PENDING -> R.string.status_pending
-                AppointmentStatus.CONFIRMED -> R.string.status_confirmed
-                AppointmentStatus.CANCELLED -> R.string.status_cancelled
+                AppointmentStatus.PENDING -> R.string.appointment_status_pending
+                AppointmentStatus.CONFIRMED -> R.string.appointment_status_confirmed
+                AppointmentStatus.CANCELLED -> R.string.appointment_status_cancelled
                 AppointmentStatus.COMPLETED -> R.string.status_completed
                 AppointmentStatus.BLOCKED -> R.string.status_blocked
             }
+            
+            val statusText = stringResource(id = statusTextId)
             
             val statusColor = when (appointment.status) {
                 AppointmentStatus.PENDING -> MaterialTheme.colorScheme.primary
@@ -134,7 +135,7 @@ private fun AppointmentCard(
             }
             
             Text(
-                text = stringResource(id = statusTextId),
+                text = statusText,
                 color = statusColor,
                 style = MaterialTheme.typography.bodyMedium
             )
