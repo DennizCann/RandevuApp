@@ -51,7 +51,8 @@ fun BusinessDetailScreen(
     onAppointmentRequest: () -> Unit,
     onBackClick: () -> Unit,
     isLoading: Boolean = false,
-    viewModel: BusinessDetailViewModel
+    viewModel: BusinessDetailViewModel,
+    customerId: String
 ) {
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
     var appointmentNote by remember { mutableStateOf("") }

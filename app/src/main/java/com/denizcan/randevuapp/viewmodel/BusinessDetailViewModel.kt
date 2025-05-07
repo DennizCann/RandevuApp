@@ -377,43 +377,50 @@ class BusinessDetailViewModel : ViewModel() {
         appointmentNote = note
     }
 
-    suspend fun createAppointment(customerId: String): String {
-        // Mevcut state'den business bilgisini al
-        val currentState = _uiState.value
-        if (currentState !is BusinessDetailState.Success) {
-            throw IllegalStateException("İşletme bilgisi yüklenmedan randevu oluşturulamaz")
-        }
-        
-        // currentBusiness veya state'den business bilgisini al
-        val business = currentBusiness ?: currentState.business
-        
-        // Gerekli bilgileri al
-        val selectedDate = currentState.selectedDate
-        val selectedTime = currentState.selectedTime ?: throw IllegalStateException("Zaman seçilmedi")
-        val note = currentState.note
-        
-        // Tarih ve saati birleştir
-        val dateTime = LocalDateTime.of(
-            selectedDate,
-            LocalTime.parse(selectedTime, DateTimeFormatter.ofPattern("HH:mm"))
-        )
-        
-        val appointment = Appointment(
-            id = UUID.randomUUID().toString(),
-            businessId = business.id,
-            businessName = business.businessName,
-            customerId = customerId,
-            dateTime = dateTime,
-            status = AppointmentStatus.PENDING,
-            note = note
-        )
-        
-        // Veritabanı işlemleri...
-        viewModelScope.launch {
+    suspend fun createAppointment(
+        businessId: String,
+        customerId: String,
+        selectedDate: LocalDate,
+        selectedTime: String, // "HH:mm" formatında
+        // diğer parametreler...
+    ): String {
+        try {
+            val time = LocalTime.parse(selectedTime, DateTimeFormatter.ofPattern("HH:mm"))
+            val dateTime = LocalDateTime.of(selectedDate, time)
+
+            val appointment = Appointment(
+                id = UUID.randomUUID().toString(),
+                businessId = businessId,
+                businessName = currentBusiness?.businessName ?: "",
+                customerId = customerId,
+                dateTime = dateTime,
+                status = AppointmentStatus.PENDING,
+                note = appointmentNote
+            )
+            // Randevuyu kaydet
             firebaseService.saveAppointment(appointment)
+            
+            // Yeni state ile güncelle
+            val currentState = _uiState.value
+            if (currentState is BusinessDetailState.Success) {
+                _uiState.value = BusinessDetailState.Success(
+                    business = currentState.business,
+                    availableSlots = calculateAvailableSlots(currentState.business, selectedDate),
+                    selectedDate = selectedDate,
+                    selectedTime = selectedTime,
+                    note = appointmentNote
+                )
+                Log.d("BusinessDetail", "Randevu başarıyla oluşturuldu")
+            } else {
+                Log.w("BusinessDetail", "State Success değil, güncellenemiyor")
+            }
+            
+            return appointment.id
+        } catch (e: Exception) {
+            Log.e("BusinessDetail", "Randevu oluşturulurken hata", e)
+            _uiState.value = BusinessDetailState.Error("Randevu oluşturulurken hata: ${e.message}")
+            throw e
         }
-        
-        return appointment.id
     }
 
     private fun generateTimeSlots(workingHours: User.WorkingHours): List<String> {

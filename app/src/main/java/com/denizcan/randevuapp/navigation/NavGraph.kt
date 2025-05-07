@@ -80,8 +80,8 @@ sealed class Screen(val route: String) {
     object BusinessInfo : Screen("business_info/{userId}") {
         fun createRoute(userId: String) = "business_info/$userId"
     }
-    object CustomerHome : Screen("customer_home/{userId}") {
-        fun createRoute(userId: String) = "customer_home/$userId"
+    object CustomerHome : Screen("customer_home/{customerId}") {
+        fun createRoute(customerId: String) = "customer_home/$customerId"
     }
     object BusinessHome : Screen("business_home/{userId}") {
         fun createRoute(userId: String) = "business_home/$userId"
@@ -145,7 +145,7 @@ fun NavGraph(navController: NavHostController) {
                                     popUpTo(Screen.Login.route) { inclusive = true }
                                 }
                             } else {
-                                navController.navigate(Screen.CustomerHome.createRoute(state.userId)) {
+                                navController.navigate(Screen.CustomerHome.createRoute(customerId = state.userId)) {
                                     popUpTo(Screen.Login.route) { inclusive = true }
                                 }
                             }
@@ -259,7 +259,7 @@ fun NavGraph(navController: NavHostController) {
                         Log.d("NavGraph", "UserInfoState değişti: $state")
                         if (state is UserInfoState.Success) {
                             Log.d("NavGraph", "Success state algılandı, ana sayfaya yönlendiriliyor")
-                            navController.navigate(Screen.CustomerHome.createRoute(userId)) {
+                            navController.navigate(Screen.CustomerHome.createRoute(customerId = userId)) {
                                 popUpTo(Screen.CustomerInfo.route) { inclusive = true }
                             }
                             userInfoViewModel.resetState()
@@ -307,15 +307,19 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        composable(Screen.CustomerHome.route) {
+        composable(
+            route = Screen.CustomerHome.route,
+            arguments = listOf(navArgument("customerId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val customerId = backStackEntry.arguments?.getString("customerId") ?: ""
+
             val viewModel: CustomerHomeViewModel = viewModel()
             val state = viewModel.uiState.collectAsState()
             val coroutineScope = rememberCoroutineScope()
 
             LaunchedEffect(Unit) {
-                val currentUser = homeViewModel.getCurrentUser()
-                if (currentUser != null) {
-                    viewModel.loadCustomerData(currentUser.uid)
+                if (customerId.isNotBlank()) {
+                    viewModel.loadCustomerData(customerId)
                 }
             }
 
@@ -326,6 +330,7 @@ fun NavGraph(navController: NavHostController) {
                 is CustomerHomeState.Success -> {
                     CustomerHomeScreen(
                         customerName = currentState.customer.fullName,
+                        customerId = customerId,
                         onBusinessListClick = {
                             navController.navigate(Screen.BusinessList.route)
                         },
@@ -333,10 +338,8 @@ fun NavGraph(navController: NavHostController) {
                             navController.navigate(Screen.CustomerAppointments.route)
                         },
                         onLogoutClick = {
-                            // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()
                             Log.d("NavGraph", "User logged out, redirecting to login screen")
-                            // Direkt navigasyon yapalım
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
@@ -494,7 +497,7 @@ fun NavGraph(navController: NavHostController) {
             val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
             val viewModel: BusinessDetailViewModel = viewModel()
             val uiState = viewModel.uiState.collectAsState().value
-            
+
             // Coroutine scope'u burada oluştur (composable içinde)
             val coroutineScope = rememberCoroutineScope()
 
@@ -529,12 +532,17 @@ fun NavGraph(navController: NavHostController) {
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             if (currentUser != null) {
                                 Log.d("NavGraph", "Randevu talebi oluşturuluyor, kullanıcı: ${currentUser.uid}")
-                                
+
                                 coroutineScope.launch {
                                     try {
-                                        val appointmentId = viewModel.createAppointment(currentUser.uid)
+                                        val appointmentId = viewModel.createAppointment(
+                                            businessId = businessId,
+                                            customerId = currentUser.uid,
+                                            selectedDate = selectedDate,
+                                            selectedTime = uiState.selectedTime ?: ""
+                                        )
                                         Log.d("NavGraph", "Randevu başarıyla oluşturuldu, ID: $appointmentId")
-                                        
+
                                         navController.navigate(Screen.AppointmentConfirmation.route) {
                                             popUpTo(Screen.BusinessList.route)
                                         }
@@ -548,7 +556,8 @@ fun NavGraph(navController: NavHostController) {
                         },
                         onBackClick = { navController.popBackStack() },
                         isLoading = false,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        customerId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
                     )
                 }
 
@@ -742,21 +751,23 @@ fun NavGraph(navController: NavHostController) {
                     style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
                     text = stringResource(id = R.string.appointment_confirmation_message),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(32.dp))
-                
+
                 Button(
-                    onClick = { 
-                        navController.navigate(Screen.CustomerHome.route) {
-                            popUpTo(Screen.CustomerHome.route) { inclusive = true }
+                    onClick = {
+                        val currentUser = FirebaseAuth.getInstance().currentUser
+                        val customerId = currentUser?.uid ?: ""
+                        navController.navigate(Screen.CustomerHome.createRoute(customerId = customerId)) {
+                            popUpTo(Screen.CustomerHome.createRoute(customerId)) { inclusive = true }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(0.7f)

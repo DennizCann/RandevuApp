@@ -13,11 +13,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.denizcan.randevuapp.MainActivity
 import com.denizcan.randevuapp.R
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerHomeScreen(
     customerName: String,
+    customerId: String,
     onBusinessListClick: () -> Unit,
     onAppointmentsClick: () -> Unit,
     onLogoutClick: () -> Unit

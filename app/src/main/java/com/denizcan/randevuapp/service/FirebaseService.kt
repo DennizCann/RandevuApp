@@ -205,10 +205,22 @@ class FirebaseService {
                 .documents
                 .mapNotNull { doc ->
                     doc.data?.let { data ->
-                        val timestamp = data["dateTime"] as? Timestamp
-                        val dateTime = timestamp?.toLocalDateTime()
-
-                        if (dateTime != null && dateTime.toLocalDate() == date) {
+                        val dateTimeAny = data["dateTime"]
+                        val dateTime = when (dateTimeAny) {
+                            is com.google.firebase.Timestamp -> org.threeten.bp.LocalDateTime.ofInstant(
+                                org.threeten.bp.Instant.ofEpochSecond(dateTimeAny.seconds, dateTimeAny.nanoseconds.toLong()),
+                                org.threeten.bp.ZoneId.systemDefault()
+                            )
+                            is String -> org.threeten.bp.LocalDateTime.parse(dateTimeAny)
+                            else -> org.threeten.bp.LocalDateTime.now()
+                        }
+                        val statusString = (data["status"] as? String)?.uppercase() ?: "PENDING"
+                        val status = try {
+                            AppointmentStatus.valueOf(statusString)
+                        } catch (e: Exception) {
+                            AppointmentStatus.PENDING
+                        }
+                        if (dateTime.toLocalDate() == date && (status == AppointmentStatus.PENDING || status == AppointmentStatus.CONFIRMED)) {
                             Appointment(
                                 id = doc.id,
                                 businessId = data["businessId"] as? String ?: "",
@@ -216,7 +228,7 @@ class FirebaseService {
                                 customerId = data["customerId"] as? String ?: "",
                                 customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
                                 dateTime = dateTime,
-                                status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
+                                status = status,
                                 note = data["note"] as? String ?: ""
                             )
                         } else null
@@ -251,13 +263,23 @@ class FirebaseService {
                 .documents
                 .mapNotNull { doc ->
                     doc.data?.let { data ->
+                        val dateTimeAny = data["dateTime"]
+                        val dateTime = when (dateTimeAny) {
+                            is com.google.firebase.Timestamp -> org.threeten.bp.LocalDateTime.ofInstant(
+                                org.threeten.bp.Instant.ofEpochSecond(dateTimeAny.seconds, dateTimeAny.nanoseconds.toLong()),
+                                org.threeten.bp.ZoneId.systemDefault()
+                            )
+                            is String -> org.threeten.bp.LocalDateTime.parse(dateTimeAny)
+                            else -> org.threeten.bp.LocalDateTime.now()
+                        }
+
                         Appointment(
                             id = doc.id,
                             businessId = data["businessId"] as? String ?: "",
                             businessName = data["businessName"] as? String ?: "Bilinmeyen İşletme",
                             customerId = data["customerId"] as? String ?: "",
                             customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
-                            dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
+                            dateTime = dateTime,
                             status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
                             note = data["note"] as? String ?: ""
                         )
@@ -284,7 +306,17 @@ class FirebaseService {
             
             // Müşteri bilgilerini al
             val customerDoc = firestore.collection("customers").document(customerId).get().await()
-            val customerName = customerDoc.getString("fullName") ?: "İsimsiz Müşteri"
+            var customerName = customerDoc.getString("fullName")
+            if (customerName.isNullOrBlank()) {
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                customerName = currentUser?.displayName
+                if (customerName.isNullOrBlank()) {
+                    customerName = currentUser?.email?.substringBefore("@")
+                }
+                if (customerName.isNullOrBlank()) {
+                    customerName = "İsimsiz Müşteri"
+                }
+            }
             
             // İşletme bilgilerini al
             val businessDoc = firestore.collection("businesses").document(businessId).get().await()
@@ -312,7 +344,7 @@ class FirebaseService {
             Log.d("FirebaseService", "Randevu kaydı başarılı")
         } catch (e: Exception) {
             Log.e("FirebaseService", "RANDEVU KAYDI HATASI", e)
-            Log.e("FirebaseService", "Hata Detayları: ${e.javaClass.name} - ${e.message}")
+            Log.e("FirebaseService", "Hata Detayları: "+e.javaClass.name+" - "+e.message)
             e.printStackTrace()
             throw e
         }
@@ -328,13 +360,16 @@ class FirebaseService {
                 .documents
                 .mapNotNull { doc ->
                     doc.data?.let { data ->
+                        val dateTimeString = data["dateTime"] as? String ?: ""
+                        val dateTime = LocalDateTime.parse(dateTimeString)
+
                         Appointment(
                             id = doc.id,
                             businessId = data["businessId"] as? String ?: "",
                             businessName = data["businessName"] as? String ?: "Bilinmeyen İşletme",
                             customerId = data["customerId"] as? String ?: "",
                             customerName = data["customerName"] as? String ?: "İsimsiz Müşteri",
-                            dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
+                            dateTime = dateTime,
                             status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
                             note = data["note"] as? String ?: ""
                         )
@@ -398,13 +433,16 @@ class FirebaseService {
             if (docSnapshot.exists()) {
                 val data = docSnapshot.data
                 if (data != null) {
+                    val dateTimeString = data["dateTime"] as? String ?: ""
+                    val dateTime = LocalDateTime.parse(dateTimeString)
+
                     Appointment(
                         id = appointmentId,
                         businessId = data["businessId"] as? String ?: "",
                         businessName = data["businessName"] as? String ?: "",
                         customerId = data["customerId"] as? String ?: "",
                         customerName = data["customerName"] as? String ?: "",
-                        dateTime = (data["dateTime"] as? Timestamp)?.toLocalDateTime() ?: LocalDateTime.now(),
+                        dateTime = dateTime,
                         status = AppointmentStatus.valueOf(data["status"] as? String ?: AppointmentStatus.PENDING.name),
                         note = data["note"] as? String ?: ""
                     )
@@ -554,6 +592,23 @@ class FirebaseService {
 
     suspend fun saveAppointment(appointment: Appointment) {
         try {
+            // customerName'i doldur
+            var customerName: String = appointment.customerName ?: ""
+            if (customerName.isBlank()) {
+                // Firestore'dan müşteri adı çek
+                val customerDoc = firestore.collection("customers").document(appointment.customerId).get().await()
+                customerName = customerDoc.getString("fullName") ?: ""
+                if (customerName.isBlank()) {
+                    val currentUser = FirebaseAuth.getInstance().currentUser
+                    customerName = currentUser?.displayName ?: ""
+                    if (customerName.isBlank()) {
+                        customerName = currentUser?.email?.substringBefore("@") ?: ""
+                    }
+                    if (customerName.isBlank()) {
+                        customerName = "İsimsiz Müşteri"
+                    }
+                }
+            }
             val db = Firebase.firestore
             db.collection("appointments").document(appointment.id)
                 .set(mapOf(
@@ -561,13 +616,13 @@ class FirebaseService {
                     "businessId" to appointment.businessId,
                     "businessName" to appointment.businessName,
                     "customerId" to appointment.customerId,
+                    "customerName" to customerName,
                     "dateTime" to appointment.dateTime.toString(),
                     "status" to appointment.status.toString(),
                     "note" to appointment.note,
                     "createdAt" to System.currentTimeMillis()
                 ))
                 .await()
-            
             Log.d("FirebaseService", "Randevu başarıyla kaydedildi: ${appointment.id}")
         } catch (e: Exception) {
             Log.e("FirebaseService", "Randevu kaydedilirken hata: ${e.message}")

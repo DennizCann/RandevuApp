@@ -58,6 +58,10 @@ class CustomerHomeViewModel : ViewModel() {
             try {
                 _appointmentsState.value = AppointmentsState.Loading
                 val appointments = firebaseService.getCustomerAppointments(customerId)
+                android.util.Log.d("CustomerAppointments", "Çekilen randevu sayısı: ${appointments.size}")
+                appointments.forEach {
+                    android.util.Log.d("CustomerAppointments", "Randevu: ${it.id} - ${it.dateTime} - ${it.status} - ${it.customerId}")
+                }
                 _appointmentsState.value = AppointmentsState.Success(appointments)
             } catch (e: Exception) {
                 _appointmentsState.value = AppointmentsState.Error(e.message ?: "Randevular yüklenemedi")
