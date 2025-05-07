@@ -138,4 +138,7 @@
     <string name="day_short_saturday">Sa</string>
     <string name="day_short_sunday">So</string>
     <string name="working_hours_info">Die Arbeitszeit kann höchstens 16 Stunden betragen. Die Termindauer muss zwischen 5 Minuten und 4 Stunden liegen.</string>
+    <string name="appointment_confirmation_title">Ihre Terminanfrage wurde empfangen</string>
+    <string name="appointment_confirmation_message">Ihre Terminanfrage wurde an das Unternehmen gesendet. Sie werden benachrichtigt, sobald sie bestätigt wird.</string>
+    <string name="go_back_to_home">Zurück zur Startseite</string>
 </resources>

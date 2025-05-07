@@ -122,16 +122,7 @@ fun BusinessDetailScreen(
                         val isSelected = date == selectedDate
 
                         // English day abbreviations
-                        val dayName = when (date.dayOfWeek.toString()) {
-                            "MONDAY" -> "Mon"
-                            "TUESDAY" -> "Tue"
-                            "WEDNESDAY" -> "Wed"
-                            "THURSDAY" -> "Thu"
-                            "FRIDAY" -> "Fri"
-                            "SATURDAY" -> "Sat"
-                            "SUNDAY" -> "Sun"
-                            else -> ""
-                        }
+                        val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,

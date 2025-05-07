@@ -135,4 +135,7 @@
     <string name="day_short_saturday">Сб</string>
     <string name="day_short_sunday">Вс</string>
     <string name="working_hours_info">Рабочее время может составлять не более 16 часов. Продолжительность приема должна быть от 5 минут до 4 часов.</string>
+    <string name="appointment_confirmation_title">Ваш запрос на запись получен</string>
+    <string name="appointment_confirmation_message">Ваш запрос на запись был отправлен в компанию. Вы получите уведомление, когда он будет подтверждён.</string>
+    <string name="go_back_to_home">Вернуться на главную</string>
 </resources>
