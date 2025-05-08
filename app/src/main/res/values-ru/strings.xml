@@ -125,6 +125,7 @@
     <string name="business_information">Информация о бизнесе</string>
     <string name="calendar_button_close">Закрыть</string>
     <string name="calendar_button_open">Открыть</string>
+    <string name="calendar_button_cancel">Отменить</string>
     <string name="calendar_title">Календарь</string>
     <string name="date_format_pattern">d MMMM yyyy</string>
     <string name="day_short_monday">Пн</string>

@@ -128,6 +128,7 @@
     <string name="business_information">Geschäftsinformationen</string>
     <string name="calendar_button_close">Schließen</string>
     <string name="calendar_button_open">Öffnen</string>
+    <string name="calendar_button_cancel">Abbrechen</string>
     <string name="calendar_title">Kalender</string>
     <string name="date_format_pattern">d. MMMM yyyy</string>
     <string name="day_short_monday">Mo</string>
