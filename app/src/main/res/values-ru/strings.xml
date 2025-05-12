@@ -139,4 +139,6 @@
     <string name="appointment_confirmation_title">Ваш запрос на запись получен</string>
     <string name="appointment_confirmation_message">Ваш запрос на запись был отправлен в компанию. Вы получите уведомление, когда он будет подтверждён.</string>
     <string name="go_back_to_home">Вернуться на главную</string>
+    <string name="request_invalid_message">Этот запрос больше не действителен.</string>
+    <string name="back_to_requests_button">Вернуться к запросам</string>
 </resources>

@@ -142,4 +142,6 @@
     <string name="appointment_confirmation_title">Ihre Terminanfrage wurde empfangen</string>
     <string name="appointment_confirmation_message">Ihre Terminanfrage wurde an das Unternehmen gesendet. Sie werden benachrichtigt, sobald sie bestätigt wird.</string>
     <string name="go_back_to_home">Zurück zur Startseite</string>
+    <string name="request_invalid_message">Diese Anfrage ist nicht mehr gültig.</string>
+    <string name="back_to_requests_button">Zurück zu den Anfragen</string>
 </resources>

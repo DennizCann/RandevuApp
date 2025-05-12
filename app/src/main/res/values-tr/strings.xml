@@ -135,4 +135,6 @@
     <string name="day_short_saturday">Cmt</string>
     <string name="day_short_sunday">Paz</string>
     <string name="calendar_button_cancel">İptal Et</string>
+    <string name="request_invalid_message">Bu talep artık geçerli değil.</string>
+    <string name="back_to_requests_button">Randevu Taleplerine Dön</string>
 </resources>

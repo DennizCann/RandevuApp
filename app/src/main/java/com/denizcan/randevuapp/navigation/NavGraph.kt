@@ -382,13 +382,14 @@ fun NavGraph(navController: NavHostController) {
                             navController.navigate(Screen.AppointmentRequests.createRoute(currentState.business.id))
                         },
                         onLogoutClick = {
-                            // Doğrudan auth'u burada çağıralım ve sign out yapalım
                             FirebaseAuth.getInstance().signOut()
                             Log.d("NavGraph", "User logged out, redirecting to login screen")
-                            // Direkt navigasyon yapalım
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
+                        },
+                        onRefresh = {
+                            viewModel.loadBusinessData(currentState.business.id)
                         }
                     )
                 }
@@ -675,7 +676,28 @@ fun NavGraph(navController: NavHostController) {
                     )
                 }
                 is BusinessHomeViewModel.AppointmentRequestsState.Error -> {
-                    Text(currentState.message)
+                    val errorMessage = currentState.message
+                    if (errorMessage.contains("not found", ignoreCase = true) ||
+                        errorMessage.contains("NOT_FOUND") ||
+                        errorMessage.contains("No document to update", ignoreCase = true)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.request_invalid_message),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(onClick = { navController.popBackStack() }) {
+                                Text(stringResource(id = R.string.back_to_requests_button))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -732,7 +754,7 @@ fun NavGraph(navController: NavHostController) {
                 onLanguageChanged = {
                     // Dil değiştirildiğinde aktiviteyi yeniden başlat
                     val intent = Intent(context, MainActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 }
             )

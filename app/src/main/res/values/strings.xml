@@ -153,4 +153,6 @@
     <string name="day_short_saturday">Sat</string>
     <string name="day_short_sunday">Sun</string>
     <string name="working_hours_info">Working hours can be at most 16 hours. Appointment duration must be between 5 minutes and 4 hours.</string>
+    <string name="request_invalid_message">This request is no longer valid.</string>
+    <string name="back_to_requests_button">Back to Requests</string>
 </resources>
