@@ -141,4 +141,7 @@
     <string name="go_back_to_home">Вернуться на главную</string>
     <string name="request_invalid_message">Этот запрос больше не действителен.</string>
     <string name="back_to_requests_button">Вернуться к запросам</string>
+    <string name="appointment_status_pending">Ожидает подтверждения</string>
+    <string name="appointment_status_confirmed">Подтверждено</string>
+    <string name="appointment_status_cancelled">Отменено</string>
 </resources>

@@ -115,7 +115,7 @@
     <string name="closed_on_selected_day">Unternehmen ist am ausgewählten Tag geschlossen</string>
     <string name="phone_number">Telefon: %s</string>
     <string name="address_colon">Adresse: %s</string>
-    <string name="appointment_status_pending">Warten auf Bestätigung</string>
+    <string name="appointment_status_pending">Bestätigung ausstehend</string>
     <string name="appointment_status_confirmed">Bestätigt</string>
     <string name="appointment_status_cancelled">Storniert</string>
     <string name="status_unavailable">✕ Nicht verfügbar</string>

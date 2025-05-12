@@ -137,4 +137,7 @@
     <string name="calendar_button_cancel">İptal Et</string>
     <string name="request_invalid_message">Bu talep artık geçerli değil.</string>
     <string name="back_to_requests_button">Randevu Taleplerine Dön</string>
+    <string name="appointment_status_pending">Onay Bekliyor</string>
+    <string name="appointment_status_confirmed">Onaylandı</string>
+    <string name="appointment_status_cancelled">İptal Edildi</string>
 </resources>
