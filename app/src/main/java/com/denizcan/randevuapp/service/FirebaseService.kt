@@ -220,7 +220,7 @@ class FirebaseService {
                         } catch (e: Exception) {
                             AppointmentStatus.PENDING
                         }
-                        if (dateTime.toLocalDate() == date && (status == AppointmentStatus.PENDING || status == AppointmentStatus.CONFIRMED)) {
+                        if (dateTime.toLocalDate() == date && (status == AppointmentStatus.PENDING || status == AppointmentStatus.CONFIRMED || status == AppointmentStatus.BLOCKED)) {
                             Appointment(
                                 id = doc.id,
                                 businessId = data["businessId"] as? String ?: "",
@@ -570,10 +570,9 @@ class FirebaseService {
                 "businessId" to businessId,
                 "customerId" to businessId, // İşletmenin kendisi tarafından bloklandığını belirtmek için
                 "dateTime" to timestamp,
-                "status" to "CONFIRMED", // Onaylanmış randevu gibi davranacak
+                "status" to "BLOCKED", // BLOCKED durumu olarak ayarla
                 "note" to "İşletme tarafından kapatıldı",
-                "createdAt" to Timestamp.now(),
-                "isBlocked" to true // İlave alan
+                "createdAt" to Timestamp.now()
             )
             
             // Firestore'a kaydet
