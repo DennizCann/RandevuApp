@@ -140,4 +140,5 @@
     <string name="appointment_status_pending">Onay Bekliyor</string>
     <string name="appointment_status_confirmed">Onaylandı</string>
     <string name="appointment_status_cancelled">İptal Edildi</string>
+    <string name="calendar_button_open">Aç</string>
 </resources>
