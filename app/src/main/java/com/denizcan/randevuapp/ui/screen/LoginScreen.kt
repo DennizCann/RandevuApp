@@ -51,7 +51,7 @@ fun LoginScreen(
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             Text(
                 text = stringResource(id = R.string.login),
@@ -111,6 +111,7 @@ fun LoginScreen(
             ) {
                 Text(stringResource(id = R.string.no_account))
             }
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 } 
