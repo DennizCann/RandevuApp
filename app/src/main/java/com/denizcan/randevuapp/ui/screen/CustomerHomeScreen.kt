@@ -32,44 +32,49 @@ fun CustomerHomeScreen(
             )
         },
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(paddingValues)
         ) {
-            Text(
-                text = stringResource(id = R.string.welcome_customer, customerName),
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = onBusinessListClick,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(id = R.string.search_business))
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = onBusinessListClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(id = R.string.search_business))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onAppointmentsClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(id = R.string.my_appointments))
+                }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onAppointmentsClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(id = R.string.my_appointments))
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             val context = LocalContext.current
-            
+
             OutlinedButton(
                 onClick = {
                     Log.d("CustomerHomeScreen", "Logout button was pressed")
                     MainActivity.logout(context)
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+                    .navigationBarsPadding()
             ) {
                 Text(stringResource(id = R.string.logout))
             }
